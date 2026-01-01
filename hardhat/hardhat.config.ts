@@ -5,7 +5,7 @@ import "@nomicfoundation/hardhat-ethers";
 import "@vechain/sdk-hardhat-plugin";
 import * as dotenv from "dotenv";
 
-dotenv.config(); // Add this line
+dotenv.config();  // Add this line
 
 const config: HardhatUserConfig = {
   solidity: {
