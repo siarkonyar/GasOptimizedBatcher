@@ -17,10 +17,26 @@ const hardhatLocal = defineChain({
       http: ["http://127.0.0.1:8545"],
     },
   },
+});
+
+export const tenderly = defineChain({
+  id: 1,
+  name: "Virtual Mainnet",
+  nativeCurrency: { name: "VETH", symbol: "VETH", decimals: 18 },
+  rpcUrls: {
+    default: {
+      http: [process.env.NEXT_PUBLIC_TENDERLY_RPC ?? ""],
+    },
+  },
+  blockExplorers: {
+    default: {
+      name: "Tenderly Explorer",
+      url: "https://virtual.mainnet.eu.rpc.tenderly.co/121506b9-56f9-43b7-9788-d913588b8654",
+    },
+  },
   contracts: {
-    myContract: {
-      address: "0x5De0B97C21d65a9fd4a1512C3a191585e64a7868",
-      blockCreated: 9945712,
+    batcher: {
+      address: "0x020eca6d44dc38b25c5ecd07d4fd15754cb5ab4d",
     },
   },
 });
@@ -28,6 +44,7 @@ const hardhatLocal = defineChain({
 export const config = createConfig({
   chains: [
     hardhatLocal,
+    tenderly,
     /* mainnet,
     sepolia, */
   ],
@@ -45,6 +62,7 @@ export const config = createConfig({
   ],
   transports: {
     [hardhatLocal.id]: http(),
+    [tenderly.id]: http(),
     /* [mainnet.id]: http(),
     [sepolia.id]: http(), */
   },

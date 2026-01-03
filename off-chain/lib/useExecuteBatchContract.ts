@@ -7,7 +7,7 @@ import {
   useChainId,
 } from "wagmi";
 import { parseEther } from "viem";
-import { config } from "@/config";
+import { config, tenderly } from "@/config";
 import { CONTRACT_ABI } from "./batchContractABI";
 
 export default function useExecuteBatchContract() {
@@ -28,8 +28,10 @@ export default function useExecuteBatchContract() {
 
   const chainId = useChainId();
   const chain = config.chains.find((c) => c.id === chainId);
-  const contractAddress = chain?.contracts?.myContract
-    ?.address as `0x${string}`;
+  const contractAddress =
+    chain?.id === tenderly.id
+      ? (tenderly.contracts.batcher.address as `0x${string}`)
+      : undefined;
 
   const { address, isConnected } = useAccount();
   const [manualStatus, setManualStatus] = useState<string>("");

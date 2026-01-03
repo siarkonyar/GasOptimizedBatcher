@@ -4,15 +4,18 @@ import { HttpNetworkConfig } from "hardhat/types";
 import "@nomicfoundation/hardhat-ethers";
 import "@vechain/sdk-hardhat-plugin";
 import * as dotenv from "dotenv";
+import * as tenderly from "@tenderly/hardhat-tenderly";
 
-dotenv.config(); // Add this line
+dotenv.config();
+
+tenderly.setup({ automaticVerifications: true });
 
 const config: HardhatUserConfig = {
   solidity: {
     version: "0.8.28",
     settings: {
       optimizer: { enabled: true, runs: 200 },
-      evmVersion: "paris", // or "shanghai" if needed
+      evmVersion: "paris",
     },
   },
   networks: {
@@ -29,12 +32,24 @@ const config: HardhatUserConfig = {
       gas: "auto",
       gasPrice: "auto",
     },
+
     //hardhat node simulation
     hardhat: {
       forking: {
         url: process.env.ALCHEMY_MAINNET_URL ?? "",
       },
     },
+
+    //tenderly virtual testnet
+    tenderly_virtual_mainnet: {
+      url: process.env.TENDERLY_RPC ?? "",
+      chainId: 1,
+    },
+  },
+  tenderly: {
+    // https://docs.tenderly.co/account/projects/account-project-slug
+    project: "project",
+    username: "siarkonyar",
   },
 };
 
