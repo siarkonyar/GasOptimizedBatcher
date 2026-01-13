@@ -22,7 +22,7 @@ const hardhatLocal = defineChain({
 export const tenderly = defineChain({
   id: 1,
   name: "Virtual Mainnet",
-  nativeCurrency: { name: "VETH", symbol: "VETH", decimals: 18 },
+  nativeCurrency: { name: "ETH", symbol: "ETH", decimals: 18 },
   rpcUrls: {
     default: {
       http: [process.env.NEXT_PUBLIC_TENDERLY_RPC ?? ""],

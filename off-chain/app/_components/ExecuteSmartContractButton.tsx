@@ -2,10 +2,18 @@
 
 import useExecuteBatchContract from "@/lib/useExecuteBatchContract";
 import React from "react";
+import { formatEther } from "viem";
 
 export default function ExecuteSmartContractButton() {
-  const { executeBatch, status, loading, isConfirmed, txHash, recipients } =
-    useExecuteBatchContract();
+  const {
+    executeBatch,
+    status,
+    loading,
+    balanceInEther,
+    isConfirmed,
+    txHash,
+    recipients,
+  } = useExecuteBatchContract();
 
   return (
     <div className="flex flex-col items-center gap-4 p-6 bg-white rounded-lg shadow-lg">
@@ -28,6 +36,10 @@ export default function ExecuteSmartContractButton() {
 
       <div className="text-lg font-semibold text-gray-700">
         Total: <span className="text-blue-600">30 ETH</span>
+      </div>
+
+      <div className="text-gray-700">
+        Balance: <span className="text-blue-700">{balanceInEther} ETH</span>
       </div>
 
       <button

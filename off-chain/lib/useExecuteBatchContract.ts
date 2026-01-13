@@ -5,27 +5,14 @@ import {
   useWriteContract,
   useWaitForTransactionReceipt,
   useChainId,
+  useBalance,
 } from "wagmi";
-import { parseEther } from "viem";
+import { formatEther, parseEther } from "viem";
 import { config, tenderly } from "@/config";
 import { CONTRACT_ABI } from "./batchContractABI";
+import { recipients } from "./recipients";
 
 export default function useExecuteBatchContract() {
-  const recipients = [
-    {
-      name: "Batch Account 1",
-      address: "0x6A88821ad52A2f5A54581A941cB38f39aaFb4aF4",
-    },
-    {
-      name: "Batch Account 2",
-      address: "0x9907bf95ea352e3ad20e656d056ef8011D1272F7",
-    },
-    {
-      name: "Batch Account 3",
-      address: "0xC3976D61f38164d86fCA69884C37977f788E7991",
-    },
-  ];
-
   const chainId = useChainId();
   const chain = config.chains.find((c) => c.id === chainId);
   const contractAddress =
@@ -34,6 +21,10 @@ export default function useExecuteBatchContract() {
       : undefined;
 
   const { address, isConnected } = useAccount();
+  const { data: balance } = useBalance({
+    address: address,
+  });
+  const balanceInEther = balance?.value ? formatEther(balance.value) : "0";
   const [manualStatus, setManualStatus] = useState<string>("");
 
   const {
@@ -107,6 +98,7 @@ export default function useExecuteBatchContract() {
   return {
     executeBatch,
     status,
+    balanceInEther,
     loading: isPending || isConfirming,
     isConfirmed,
     txHash: hash,

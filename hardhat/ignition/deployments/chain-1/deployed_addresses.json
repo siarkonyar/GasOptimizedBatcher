@@ -1,3 +1,4 @@
 {
-  "BatcherModule#Batcher": "0x020ECa6d44Dc38B25C5EcD07d4Fd15754CB5ab4d"
+  "BatcherModule#Batcher": "0x020ECa6d44Dc38B25C5EcD07d4Fd15754CB5ab4d",
+  "MultiBatchModule#MultiBatch": "0xC08F7eF9235760A86AD18c4bEEf7fF3B91512B97"
 }
