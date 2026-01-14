@@ -12,6 +12,8 @@ import { formatEther, parseEther, parseUnits } from "viem";
 import { config, tenderly } from "@/config";
 import { recipients, sendersPrivateKeys } from "./keys";
 import { MULTI_BATCH_CONTRACT_ABI } from "./ABI";
+import { useApproveSmartContract } from "./useApproveSmartContract";
+import { ethers } from "ethers";
 
 export default function useExecuteMultiBatchContract() {
   const chainId = useChainId();
@@ -21,7 +23,7 @@ export default function useExecuteMultiBatchContract() {
 
   const contractAddress =
     chain?.id === tenderly.id
-      ? (tenderly.contracts.batcher.address as `0x${string}`)
+      ? (tenderly.contracts.multiBatch.address as `0x${string}`)
       : undefined;
 
   const {
@@ -31,10 +33,21 @@ export default function useExecuteMultiBatchContract() {
     isPending,
   } = useWriteContract();
 
+  const { approveForAll, isApproving, approvalStatus, approvalError } =
+    useApproveSmartContract();
+
   const { isLoading: isConfirming, isSuccess: isConfirmed } =
     useWaitForTransactionReceipt({
       hash,
     });
+
+  const getRandomAmount = () => {
+    // random integer between 1 and 100 USDC
+    const min = 1;
+    const max = 100;
+    const randomInt = Math.floor(Math.random() * (max - min + 1)) + min;
+    return parseUnits(randomInt.toString(), 6);
+  };
 
   const status = useMemo(() => {
     if (writeError) {
@@ -54,6 +67,14 @@ export default function useExecuteMultiBatchContract() {
     try {
       setManualStatus("Preparing Multi Batch Transfer...");
 
+      //approve multi batch smart contract for all acount for the smart contract to withdraw usdc from wallets
+      const approved = await approveForAll();
+
+      if (!approved || approvalError) {
+        setManualStatus(`Approval failed: ${approvalError}`);
+        return;
+      }
+
       // Check if contract address is available
       if (!contractAddress) {
         setManualStatus("Contract address not found for this chain!");
@@ -65,13 +86,12 @@ export default function useExecuteMultiBatchContract() {
         (r) => r.address
       ) as `0x${string}`[];
 
+      // Get actual wallet addresses from private keys
       const senderAddresses = sendersPrivateKeys.map(
-        (r) => r.address
+        (sender) => new ethers.Wallet(sender.address).address
       ) as `0x${string}`[];
 
-      const amounts = senderAddresses.map(() => parseUnits("10", 6)); // 10 USDC for each
-
-
+      const amounts = senderAddresses.map(() => getRandomAmount()); //random value for each transaction
 
       setManualStatus("Waiting for transaction approval...");
 
@@ -88,5 +108,16 @@ export default function useExecuteMultiBatchContract() {
         `Error: ${error instanceof Error ? error.message : "Unknown error"}`
       );
     }
+  };
+
+  return {
+    executeMultiBatch,
+    status,
+    isApproving,
+    isPending,
+    isConfirming,
+    isConfirmed,
+    hash,
+    writeError,
   };
 }

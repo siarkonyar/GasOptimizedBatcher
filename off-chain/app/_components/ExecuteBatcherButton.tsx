@@ -4,7 +4,7 @@ import useExecuteBatchContract from "@/lib/useExecuteBatchContract";
 import React from "react";
 import { formatEther } from "viem";
 
-export default function ExecuteSmartContractButton() {
+export default function ExecuteBatcherButton() {
   const {
     executeBatch,
     status,
