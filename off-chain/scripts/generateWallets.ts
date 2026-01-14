@@ -3,8 +3,8 @@ import fs from "fs";
 
 const WALLET_COUNT = 80;
 
-async function createArmy() {
-  console.log(`🤖 Generating ${WALLET_COUNT} wallets...`);
+async function createWallets() {
+  console.log(`Generating ${WALLET_COUNT} wallets`);
 
   const wallets = [];
 
@@ -27,4 +27,4 @@ async function createArmy() {
   console.log(`Last Wallet: ${wallets[79].address}`);
 }
 
-createArmy();
+createWallets();
