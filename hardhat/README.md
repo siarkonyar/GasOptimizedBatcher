@@ -57,3 +57,8 @@ npx hardhat compile              # Compile contracts
 npx hardhat test                 # Run tests
 npx hardhat clean                # Clean artifacts
 ```
+
+
+npx hardhat ignition deploy ignition/modules/MultiBatch.ts --network localhost
+
+npx hardhat run scripts/fundWallets.ts --network localhost

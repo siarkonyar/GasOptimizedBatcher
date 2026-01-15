@@ -1,6 +1,5 @@
 import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
-import { HttpNetworkConfig } from "hardhat/types";
 import "@nomicfoundation/hardhat-ethers";
 import "@vechain/sdk-hardhat-plugin";
 import * as dotenv from "dotenv";
@@ -20,7 +19,7 @@ const config: HardhatUserConfig = {
   },
   networks: {
     //VeChain
-    vechain_testnet: {
+    /* vechain_testnet: {
       url: process.env.VECHAIN_TESTNET_URL,
       accounts: {
         mnemonic: process.env.VECHAIN_TESTNET_MNEMONIC,
@@ -31,6 +30,19 @@ const config: HardhatUserConfig = {
       },
       gas: "auto",
       gasPrice: "auto",
+    }, */
+
+    vechain_solo: {
+      // Thor solo network
+      url: "http://localhost:8669",
+      accounts: [
+        "7f9290cc44c5fd2b95fe21d6ad6fe5fa9c177e1cd6f3b4c96a97b13e09eaa158",
+      ],
+      gas: "auto",
+      gasPrice: "auto",
+      gasMultiplier: 1,
+      timeout: 20000,
+      httpHeaders: {},
     },
 
     //hardhat node simulation

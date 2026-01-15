@@ -17,6 +17,11 @@ const hardhatLocal = defineChain({
       http: ["http://127.0.0.1:8545"],
     },
   },
+  contracts: {
+    multiBatch: {
+      address: "0xfd6fa56fcf2f2f03d0026d9211e77d739a34f9f2",
+    },
+  },
 });
 
 export const tenderly = defineChain({
