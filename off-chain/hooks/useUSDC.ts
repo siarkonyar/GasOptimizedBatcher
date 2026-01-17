@@ -22,7 +22,7 @@ const USDC_ABI = [
   },
 ] as const;
 
-export function useSendUsdc() {
+export function useUSDC() {
   const [manualStatus, setManualStatus] = useState("");
   const [hash, setHash] = useState<`0x${string}` | undefined>();
   const [receipt, setReceipt] = useState<ethers.TransactionReceipt | null>(
@@ -55,9 +55,7 @@ export function useSendUsdc() {
       setReceipt(null);
 
       if (!chain) {
-        throw new Error(
-          "unsupported chain",
-        );
+        throw new Error("unsupported chain");
       }
 
       const RPC_URL = chain.rpcUrls.default.http[0];
