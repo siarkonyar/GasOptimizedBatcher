@@ -14,6 +14,8 @@ import { recipients, sendersPrivateKeys } from "../lib/keys";
 import { MULTI_BATCH_CONTRACT_ABI } from "../lib/ABI";
 import { useApproveSmartContract } from "./useApproveSmartContract";
 import { ethers } from "ethers";
+import { getRandomAmount } from "@/lib/randomAmounts";
+import { Transaction } from "@/types/types";
 
 export default function useExecuteMultiBatchContract() {
   const chainId = useChainId();
@@ -21,10 +23,9 @@ export default function useExecuteMultiBatchContract() {
 
   const [manualStatus, setManualStatus] = useState<string>("");
 
-  const contractAddress =
-    chain?.id === tenderly.id
-      ? (tenderly.contracts.multiBatch.address as `0x${string}`)
-      : undefined;
+  const contractAddress = chain?.contracts?.multiBatch?.address
+    ? (chain.contracts.multiBatch.address as `0x${string}`)
+    : undefined;
 
   const {
     data: hash,
@@ -36,18 +37,13 @@ export default function useExecuteMultiBatchContract() {
   const { approveForAll, isApproving, approvalStatus, approvalError } =
     useApproveSmartContract();
 
-  const { isLoading: isConfirming, isSuccess: isConfirmed } =
-    useWaitForTransactionReceipt({
-      hash,
-    });
-
-  const getRandomAmount = () => {
-    // random integer between 1 and 100 USDC
-    const min = 1;
-    const max = 100;
-    const randomInt = Math.floor(Math.random() * (max - min + 1)) + min;
-    return parseUnits(randomInt.toString(), 6);
-  };
+  const {
+    data: receipt,
+    isLoading: isConfirming,
+    isSuccess: isConfirmed,
+  } = useWaitForTransactionReceipt({
+    hash,
+  });
 
   const status = useMemo(() => {
     if (writeError) {
@@ -63,7 +59,19 @@ export default function useExecuteMultiBatchContract() {
     return manualStatus;
   }, [isConfirming, isConfirmed, hash, writeError, manualStatus]);
 
-  const executeMultiBatch = async () => {
+  /* // Prepare recipients and amounts arrays
+  const recipientAddresses = recipients.map(
+    (r) => r.address
+  ) as `0x${string}`[];
+
+  // Get actual wallet addresses from private keys
+  const senderAddresses = sendersPrivateKeys.map(
+    (sender) => new ethers.Wallet(sender.address).address
+  ) as `0x${string}`[]; */
+
+  //const amounts = senderAddresses.map(() => getRandomAmount()); //random value for each transaction
+
+  const executeMultiBatch = async (batch: Transaction[]) => {
     try {
       setManualStatus("Preparing Multi Batch Transfer...");
 
@@ -81,17 +89,10 @@ export default function useExecuteMultiBatchContract() {
         return;
       }
 
-      // Prepare recipients and amounts arrays
-      const recipientAddresses = recipients.map(
-        (r) => r.address
-      ) as `0x${string}`[];
-
-      // Get actual wallet addresses from private keys
-      const senderAddresses = sendersPrivateKeys.map(
-        (sender) => new ethers.Wallet(sender.address).address
-      ) as `0x${string}`[];
-
-      const amounts = senderAddresses.map(() => getRandomAmount()); //random value for each transaction
+      // derive arrays from the batch argument
+      const senders = batch.map((tx) => tx.sender) as `0x${string}`[];
+      const recipientsArr = batch.map((tx) => tx.recipient) as `0x${string}`[];
+      const amounts = batch.map((tx) => tx.amount);
 
       setManualStatus("Waiting for transaction approval...");
 
@@ -100,7 +101,7 @@ export default function useExecuteMultiBatchContract() {
         address: contractAddress,
         abi: MULTI_BATCH_CONTRACT_ABI,
         functionName: "executeBatch",
-        args: [senderAddresses, recipientAddresses, amounts],
+        args: [senders, recipientsArr, amounts],
       });
     } catch (error) {
       console.error("Error:", error);
@@ -118,6 +119,7 @@ export default function useExecuteMultiBatchContract() {
     isConfirming,
     isConfirmed,
     hash,
+    receipt,
     writeError,
   };
 }

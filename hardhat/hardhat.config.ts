@@ -47,6 +47,9 @@ const config: HardhatUserConfig = {
 
     //hardhat node simulation
     hardhat: {
+      accounts: {
+        count: 50, //creates [index] number of wallets
+      },
       forking: {
         url: process.env.ALCHEMY_MAINNET_URL ?? "",
       },

@@ -2,7 +2,7 @@
 
 import { ethers } from "ethers";
 import { sendersPrivateKeys } from "../lib/keys";
-import { config, tenderly } from "@/config";
+import { config } from "@/config";
 import { useChainId } from "wagmi";
 import { useState } from "react";
 
@@ -11,20 +11,34 @@ export function useApproveSmartContract() {
   const [approvalStatus, setApprovalStatus] = useState<string>("");
   const [approvalError, setApprovalError] = useState<string | null>(null);
 
+  const chainId = useChainId();
+  const chain = config.chains.find((c) => c.id === chainId);
+
   const approveForAll = async () => {
     setIsApproving(true);
     setApprovalError(null);
 
     try {
-      const TENDERLY_RPC = tenderly.rpcUrls.default.http[0];
-      const USDC_ADDRESS = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"; // Mainnet USDC
-      const MULTI_BATCH_CONTRACT_ADDRESS =
-        tenderly.contracts.multiBatch.address;
+      if (!chain) {
+        throw new Error(
+          "Unsupported chain. Please connect to a supported network."
+        );
+      }
+
+      const RPC_URL = chain.rpcUrls.default.http[0];
+      const USDC_ADDRESS = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"; // Mainnet USDC (same on fork)
+      const MULTI_BATCH_CONTRACT_ADDRESS = chain.contracts?.multiBatch?.address;
+
+      if (!MULTI_BATCH_CONTRACT_ADDRESS) {
+        throw new Error(
+          "MultiBatch contract address not configured for this chain."
+        );
+      }
 
       console.log("starting approvals...");
 
-      //connect to tenderly
-      const provider = new ethers.JsonRpcProvider(TENDERLY_RPC);
+      // Connect to the current chain (hardhatLocal, tenderly, etc.)
+      const provider = new ethers.JsonRpcProvider(RPC_URL);
 
       const abi = [
         "function approve(address spender, uint256 amount) public returns (bool)",

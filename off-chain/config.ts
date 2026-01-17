@@ -19,7 +19,7 @@ const hardhatLocal = defineChain({
   },
   contracts: {
     multiBatch: {
-      address: "0xfd6fa56fcf2f2f03d0026d9211e77d739a34f9f2",
+      address: "0x2d929838d32Ea33a0994D37F82965C2d284E3b4F",
     },
   },
 });

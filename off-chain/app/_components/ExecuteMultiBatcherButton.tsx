@@ -1,6 +1,7 @@
 "use client";
 
 import useExecuteMultiBatchContract from "@/hooks/useExecuteMultiBatchContract";
+import { generateRandomBatch } from "@/lib/generateRandomTransaction";
 import { recipients, sendersPrivateKeys } from "@/lib/keys";
 import React from "react";
 
@@ -16,6 +17,8 @@ export default function ExecuteMultiBatcherButton() {
   } = useExecuteMultiBatchContract();
 
   const isLoading = isApproving || isPending || isConfirming;
+
+  const batch = generateRandomBatch(5);
 
   return (
     <div className="flex flex-col items-center gap-4 p-6 bg-white rounded-lg shadow-lg">
@@ -56,7 +59,7 @@ export default function ExecuteMultiBatcherButton() {
       </div>
 
       <button
-        onClick={executeMultiBatch}
+        onClick={() => executeMultiBatch(batch)}
         disabled={isLoading}
         className={`px-6 py-3 rounded-lg font-semibold text-white transition-all duration-200 ${
           isLoading
@@ -73,8 +76,8 @@ export default function ExecuteMultiBatcherButton() {
             status.includes("Error") || status.includes("failed")
               ? "bg-red-50 border border-red-200"
               : status.includes("confirmed")
-              ? "bg-green-50 border border-green-200"
-              : "bg-blue-50 border border-blue-200"
+                ? "bg-green-50 border border-green-200"
+                : "bg-blue-50 border border-blue-200"
           }`}
         >
           <p
@@ -82,8 +85,8 @@ export default function ExecuteMultiBatcherButton() {
               status.includes("Error") || status.includes("failed")
                 ? "text-red-800"
                 : status.includes("confirmed")
-                ? "text-green-800"
-                : "text-blue-800"
+                  ? "text-green-800"
+                  : "text-blue-800"
             }`}
           >
             {status}

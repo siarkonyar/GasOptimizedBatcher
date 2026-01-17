@@ -58,6 +58,11 @@ npx hardhat test                 # Run tests
 npx hardhat clean                # Clean artifacts
 ```
 
+npx hardhat run scripts/fundWallets.ts --network localhost
+
+npx hardhat run scripts/checkUsdcBalances.ts --network localhost
+
+npx hardhat console --network localhost
 
 npx hardhat ignition deploy ignition/modules/MultiBatch.ts --network localhost
 
