@@ -1,11 +1,10 @@
-import { ethers } from "ethers";
-import { recipients, sendersPrivateKeys } from "@/lib/keys";
+import { recipients, senders } from "@/lib/keys";
 import { getRandomAmount } from "@/lib/randomAmounts";
 import { Transaction } from "@/types/types";
 
-const senderAddresses = sendersPrivateKeys.map(
-  (sender) => new ethers.Wallet(sender.address).address,
-) as `0x${string}`[];
+const senderAddresses = senders.map((s) => s.address) as `0x${string}`[];
+
+const senderPrivateKeys = senders.map((s) => s.privateKey) as `0x${string}`[];
 
 const recipientAddresses = recipients.map((r) => r.address) as `0x${string}`[];
 
@@ -30,18 +29,20 @@ export function generateRandomBatch(count: number): Transaction[] {
   return batch;
 }
 
-export function generateRandomTransaction(): Transaction{
-  const sender =
-    senderAddresses[Math.floor(Math.random() * senderAddresses.length)];
+export function generateRandomTransaction(): Transaction {
+  const index = Math.floor(Math.random() * senders.length);
+  const senderAddress = senderAddresses[index];
+  const senderPrivateKey = senderPrivateKeys[index];
   const recipient =
     recipientAddresses[Math.floor(Math.random() * recipientAddresses.length)];
   const amount = getRandomAmount();
 
   const transaction = {
-    sender,
+    sender: senderAddress,
     recipient,
-    amount
-  }
+    amount,
+    senderPrivateKey,
+  };
 
   return transaction;
 }

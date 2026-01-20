@@ -5,6 +5,7 @@ import { useChainId } from "wagmi";
 import { parseUnits } from "viem";
 import { ethers } from "ethers";
 import { config } from "@/config";
+import { Transaction } from "@/types/types";
 
 const USDC_ADDRESS =
   "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48" as `0x${string}`;
@@ -44,10 +45,11 @@ export function useUSDC() {
   }, [writeError, isConfirming, isConfirmed, hash, manualStatus]);
 
   const sendUsdc = async (
-    privateKey: string,
-    to: `0x${string}`,
-    amountUsdc: number,
-  ) => {
+    transaction: Transaction,
+  ): Promise<ethers.TransactionReceipt | void> => {
+    const senderPrivateKey = transaction.senderPrivateKey;
+    const recipient = transaction.recipient;
+    const txamount = transaction.amount;
     try {
       setManualStatus("preparing USDC transfer...");
       setWriteError(null);
@@ -58,15 +60,19 @@ export function useUSDC() {
         throw new Error("unsupported chain");
       }
 
+      if (!senderPrivateKey) {
+        throw new Error("missing sender private key for USDC transfer");
+      }
+
       const RPC_URL = chain.rpcUrls.default.http[0];
       const provider = new ethers.JsonRpcProvider(RPC_URL);
-      const wallet = new ethers.Wallet(privateKey, provider);
+      const wallet = new ethers.Wallet(senderPrivateKey, provider);
       const usdc = new ethers.Contract(USDC_ADDRESS, USDC_ABI, wallet);
 
-      const amount = parseUnits(amountUsdc.toString(), 6); // USDC has 6 decimals
+      const amount = parseUnits(txamount.toString(), 6); // USDC has 6 decimals
 
       setIsPending(true);
-      const tx = await usdc.transfer(to, amount);
+      const tx = await usdc.transfer(recipient, amount);
       setIsPending(false);
 
       setHash(tx.hash as `0x${string}`);
@@ -78,6 +84,8 @@ export function useUSDC() {
       setIsConfirming(false);
       setIsConfirmed(true);
       setManualStatus(`transaction confirmed. Hash: ${tx.hash}`);
+
+      return txReceipt;
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown error";
       setWriteError(error instanceof Error ? error : new Error(message));

@@ -10,7 +10,7 @@ import {
 } from "wagmi";
 import { formatEther, parseEther, parseUnits } from "viem";
 import { config, tenderly } from "@/config";
-import { recipients, sendersPrivateKeys } from "../lib/keys";
+import { recipients, senders } from "../lib/keys";
 import { MULTI_BATCH_CONTRACT_ABI } from "../lib/ABI";
 import { useApproveSmartContract } from "./useApproveSmartContract";
 import { ethers } from "ethers";
@@ -106,7 +106,7 @@ export default function useExecuteMultiBatchContract() {
     } catch (error) {
       console.error("Error:", error);
       setManualStatus(
-        `Error: ${error instanceof Error ? error.message : "Unknown error"}`
+        `Error: ${error instanceof Error ? error.message : "Unknown error"}`,
       );
     }
   };

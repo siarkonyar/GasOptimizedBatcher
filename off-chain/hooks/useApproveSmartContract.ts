@@ -1,7 +1,7 @@
 "use client";
 
 import { ethers } from "ethers";
-import { sendersPrivateKeys } from "../lib/keys";
+import { senders } from "../lib/keys";
 import { config } from "@/config";
 import { useChainId } from "wagmi";
 import { useState } from "react";
@@ -44,22 +44,22 @@ export function useApproveSmartContract() {
         "function approve(address spender, uint256 amount) public returns (bool)",
       ];
 
-      for (const sender of sendersPrivateKeys) {
+      for (const sender of senders) {
         try {
           //connect to wallet
-          const wallet = new ethers.Wallet(sender.address, provider);
+          const wallet = new ethers.Wallet(sender.privateKey, provider);
 
           //connect to smart contract
           const usdcContract = new ethers.Contract(USDC_ADDRESS, abi, wallet);
 
           setApprovalStatus(
-            `${sender.name} (${wallet.address}) is approving...`
+            `${sender.name} (${wallet.address}) is approving...`,
           );
 
           // Send the approval transaction
           const tx = await usdcContract.approve(
             MULTI_BATCH_CONTRACT_ADDRESS,
-            ethers.MaxUint256
+            ethers.MaxUint256,
           );
 
           await tx.wait();
