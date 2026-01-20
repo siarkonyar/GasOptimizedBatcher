@@ -69,10 +69,8 @@ export function useUSDC() {
       const wallet = new ethers.Wallet(senderPrivateKey, provider);
       const usdc = new ethers.Contract(USDC_ADDRESS, USDC_ABI, wallet);
 
-      const amount = parseUnits(txamount.toString(), 6); // USDC has 6 decimals
-
       setIsPending(true);
-      const tx = await usdc.transfer(recipient, amount);
+      const tx = await usdc.transfer(recipient, txamount);
       setIsPending(false);
 
       setHash(tx.hash as `0x${string}`);

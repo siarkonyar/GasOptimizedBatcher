@@ -9,7 +9,7 @@ import {
   useBalance,
 } from "wagmi";
 import { formatEther, parseEther, parseUnits } from "viem";
-import { config, tenderly } from "@/config";
+import { config } from "@/config";
 import { recipients, senders } from "../lib/keys";
 import { MULTI_BATCH_CONTRACT_ABI } from "../lib/ABI";
 import { useApproveSmartContract } from "./useApproveSmartContract";

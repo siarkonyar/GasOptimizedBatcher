@@ -19,12 +19,12 @@ const hardhatLocal = defineChain({
   },
   contracts: {
     multiBatch: {
-      address: "0x30Ee5eaA50d0edBd7587731257622Bf0d94075c0",
+      address: "0x2BF866DA3A8eEb90b288e6D434d319624263a24b",
     },
   },
 });
 
-export const tenderly = defineChain({
+/* export const tenderly = defineChain({
   id: 1,
   name: "Virtual Mainnet",
   nativeCurrency: { name: "ETH", symbol: "ETH", decimals: 18 },
@@ -48,12 +48,12 @@ export const tenderly = defineChain({
     },
   },
 });
-
+ */
 export const config = createConfig({
   chains: [
     hardhatLocal,
-    tenderly,
-    /* mainnet,
+    /* tenderly,
+    mainnet,
     sepolia, */
   ],
   //NOTE - this batch setting is comming from view
@@ -70,8 +70,8 @@ export const config = createConfig({
   ],
   transports: {
     [hardhatLocal.id]: http(),
-    [tenderly.id]: http(),
-    /* [mainnet.id]: http(),
+    /* [tenderly.id]: http(),
+    [mainnet.id]: http(),
     [sepolia.id]: http(), */
   },
 });

@@ -64,7 +64,7 @@ export default function SimulateUSDCTransactions() {
         await new Promise((r) => setTimeout(r, Math.random() * 3000));
       }
 
-      //await executeMultiBatch(batch);
+      await executeMultiBatch(batch);
     };
 
     runSimulation();
@@ -87,7 +87,7 @@ export default function SimulateUSDCTransactions() {
             ? individualGasUsed.join(", ")
             : "No transactions yet"}
         </p>
-        {/* <p className="mt-1">Batch gas used: {batchGasUsed ?? "N/A"}</p> */}
+        <p className="mt-1">Batch gas used: {batchGasUsed ?? "N/A"}</p>
       </div>
     </div>
   );
