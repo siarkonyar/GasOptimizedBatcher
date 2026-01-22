@@ -43,9 +43,7 @@ async function executeBatch(
   }
 
   if (batch.length >= BATCH_SIZE) {
-    console.log(
-      `Batch size is reached.`
-    )
+    console.log(`Batch size is reached.`);
   }
 
   console.log(
@@ -122,11 +120,15 @@ async function USDCSimulation() {
   try {
     while (Date.now() < endTime) {
       // Check if it's time to execute a batch
-      if (Date.now() >= nextBatchTime || batch.length >= BATCH_SIZE) {
+      if (Date.now() >= nextBatchTime) {
         await executeBatch(batch, batcherWallet, batchNumber);
         batch = []; // Clear the batch
         batchNumber++;
         nextBatchTime += BATCH_INTERVAL_MS; // Schedule next batch
+      } else if (batch.length >= BATCH_SIZE) {
+        await executeBatch(batch, batcherWallet, batchNumber);
+        batch = []; // Clear the batch
+        batchNumber++;
       }
       const transaction = await generateRandomTransaction();
 
@@ -155,7 +157,7 @@ async function USDCSimulation() {
         console.log(`\n✅ Individual Tx: ${tx.hash}`);
         console.log(`⛽ Gas Used: ${gasUsed}`);
 
-        console.log('------------------------------------------------')
+        console.log("------------------------------------------------");
 
         batch.push(transaction);
       } catch (txError) {
