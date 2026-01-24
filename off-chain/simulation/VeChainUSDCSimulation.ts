@@ -13,7 +13,8 @@ import { godWallet } from "@/lib/vechain-wallets";
 dotenv.config();
 
 const SOLO_NODE_RPC_URL = "http://127.0.0.1:8545";
-const USDC_ADDRESS = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"; // VeChain USDC Address
+const USDC_ADDRESS = process.env
+  .NEXT_PUBLIC_VECHAIN_USDC_ADDRESS as `0x${string}`; // VeChain USDC Address
 const VECHAIN_BATCH_ADDRESS = process.env
   .NEXT_PUBLIC_VECHAIN_BATCHER_ADDRESS as `0x${string}`;
 const SIMULATION_DURATION = 5 * 60 * 1000;
@@ -232,7 +233,6 @@ async function VeChainUSDCSimulation() {
           blockNumber: transferReceipt?.blockNumber || null,
           timestamp: Date.now(),
         });
-
 
         //NOTE: approve may not be included in the simulation since it is done only once.
         const approveTx = await usdcContract.approve(
