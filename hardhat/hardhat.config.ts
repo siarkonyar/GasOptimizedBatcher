@@ -3,11 +3,8 @@ import "@nomicfoundation/hardhat-toolbox";
 import "@nomicfoundation/hardhat-ethers";
 import "@vechain/sdk-hardhat-plugin";
 import * as dotenv from "dotenv";
-import * as tenderly from "@tenderly/hardhat-tenderly";
 
 dotenv.config();
-
-tenderly.setup({ automaticVerifications: true });
 
 const config: HardhatUserConfig = {
   solidity: {
@@ -16,6 +13,12 @@ const config: HardhatUserConfig = {
       optimizer: { enabled: true, runs: 200 },
       evmVersion: "paris",
     },
+  },
+  gasReporter: {
+    enabled: process.env.REPORT_GAS !== undefined,
+    excludeContracts: [],
+    // Disable for non-standard networks
+    noColors: false,
   },
   networks: {
     //VeChain
@@ -35,14 +38,20 @@ const config: HardhatUserConfig = {
     vechain_solo: {
       // Thor solo network
       url: "http://localhost:8669",
-      accounts: [
-        "7f9290cc44c5fd2b95fe21d6ad6fe5fa9c177e1cd6f3b4c96a97b13e09eaa158",
-      ],
+      accounts: {
+        mnemonic:
+          "denial kitchen pet squirrel other broom bar gas better priority spoil cross",
+        count: 1,
+        path: "m/44'/818'/0'/0", // Standard VeChain derivation path
+        initialIndex: 0,
+      },
       gas: "auto",
       gasPrice: "auto",
       gasMultiplier: 1,
       timeout: 20000,
       httpHeaders: {},
+      chainId: 1,
+      from: undefined,
     },
 
     //hardhat node simulation
@@ -57,17 +66,6 @@ const config: HardhatUserConfig = {
         enabled: true,
       },
     },
-
-    //tenderly virtual testnet
-    tenderly_virtual_mainnet: {
-      url: process.env.TENDERLY_RPC ?? "",
-      chainId: 1,
-    },
-  },
-  tenderly: {
-    // https://docs.tenderly.co/account/projects/account-project-slug
-    project: "project",
-    username: "siarkonyar",
   },
 };
 

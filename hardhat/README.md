@@ -69,3 +69,5 @@ npx hardhat ignition deploy ignition/modules/MultiBatch.ts --network localhost
 npx hardhat run scripts/fundWallets.ts --network localhost
 
 docker run -p 127.0.0.1:8669:8669 vechain/thor:latest solo --api-cors '*' --api-addr 0.0.0.0:8669
+
+npx hardhat run ignition/modules/VeChainBatch.ts --network vechain_solo

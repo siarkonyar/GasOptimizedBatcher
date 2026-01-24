@@ -2,11 +2,11 @@
   "name": "hardhat-project",
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^6.1.0",
+    "@vechain/sdk-hardhat-plugin": "^2.0.7",
     "hardhat": "^2.27.2"
   },
   "dependencies": {
     "@tenderly/hardhat-tenderly": "^2.5.2",
-    "@vechain/sdk-hardhat-plugin": "^2.0.7",
     "dotenv": "^17.2.3"
   }
 }
