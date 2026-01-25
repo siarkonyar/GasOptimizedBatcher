@@ -117,6 +117,17 @@ export const VECHAIN_BATCH_CONTRACT_ABI = [
   {
     inputs: [
       {
+        internalType: "address",
+        name: "usdcAddress",
+        type: "address",
+      },
+    ],
+    stateMutability: "nonpayable",
+    type: "constructor",
+  },
+  {
+    inputs: [
+      {
         components: [
           {
             internalType: "address",

@@ -10,8 +10,7 @@ interface IVIP180 {
 }
 
 contract VeChainBatch {
-    address constant USDC_ADDRESS = 0xC0C789a13A69859d3ae7BDb3fE4fA1625D20FD65;
-    IVIP180 public constant targetToken = IVIP180(USDC_ADDRESS);
+    IVIP180 public immutable targetToken;
     mapping(address => uint256) public nonces;
 
     struct BatchTransaction {
@@ -21,6 +20,10 @@ contract VeChainBatch {
         uint8 v;
         bytes32 r;
         bytes32 s;
+    }
+
+    constructor(address usdcAddress) {
+        targetToken = IVIP180(usdcAddress);
     }
 
     function executeBatch(BatchTransaction[] calldata txs) external {

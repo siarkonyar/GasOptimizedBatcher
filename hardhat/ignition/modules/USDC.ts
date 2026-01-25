@@ -17,7 +17,7 @@ async function main(): Promise<void> {
 
   console.log(
     "✅ Contract deployment with the following transaction:",
-    stringifyData(txResponse.getAddress()),
+    stringifyData(txResponse),
   );
 }
 

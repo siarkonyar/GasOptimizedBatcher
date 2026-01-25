@@ -289,7 +289,7 @@ async function seed() {
   // Define Amounts
   const usdcAmount = BigInt(Units.parseUnits("10000", 6).toString()); // 10,000 USDC (6 decimals)
   const vetAmount = VET.of(10); // 10 VET in wei (returns bigint)
-  const vthoAmount = VTHO.of(0.00000000000000005).wei; // 500 VTHO in wei (returns bigint)
+  const vthoAmount = VTHO.of(5).wei; // 500 VTHO in wei (returns bigint)
 
   console.log(`📝 Funding ${recipients.length} wallets...`);
   console.log(
@@ -298,6 +298,12 @@ async function seed() {
 
   // Create contract interfaces
   const usdcContract = thorClient.contracts.load(USDC_ADDRESS, USDC_ABI);
+
+  const code = await thorClient.accounts.getBytecode(Address.of(USDC_ADDRESS));
+  if (!code) {
+    throw new Error(`No contract found at address ${USDC_ADDRESS}`);
+  }
+  console.log(code);
   const vthoContract = thorClient.contracts.load(VTHO_ADDRESS, VTHO_ABI);
 
   // Loop & Fund
