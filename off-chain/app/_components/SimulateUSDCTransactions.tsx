@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import type { Transaction } from "@/types/types";
-import useExecuteMultiBatchContract from "@/hooks/useExecuteMultiBatchContract";
+import useExecuteETHBatchContract from "@/hooks/useExecuteETHBatchContract";
 import { useUSDC } from "@/hooks/useUSDC";
 import { generateRandomTransaction } from "@/lib/generateRandomUSDCTransaction";
 import { useApproveSmartContract } from "@/hooks/useApproveSmartContract";
@@ -10,8 +10,7 @@ import { useApproveSmartContract } from "@/hooks/useApproveSmartContract";
 type TransactionWithGas = Transaction & { gasUsed: string };
 
 export default function SimulateUSDCTransactions() {
-  const { executeMultiBatch, receipt: batchReceipt } =
-    useExecuteMultiBatchContract();
+  const { executeBatch, receipt: batchReceipt } = useExecuteETHBatchContract();
 
   const { sendUsdc } = useUSDC();
 
@@ -71,7 +70,7 @@ export default function SimulateUSDCTransactions() {
 
       clearInterval(countdownInterval);
       setSimulationComplete(true);
-      await executeMultiBatch(batch);
+      await executeBatch(batch);
     };
 
     runSimulation();

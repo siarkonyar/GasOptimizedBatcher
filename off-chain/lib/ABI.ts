@@ -74,7 +74,7 @@ export const BATCH_CONTRACT_ABI = [
   },
 ];
 
-export const MULTI_BATCH_CONTRACT_ABI = [
+export const ETH_BATCH_CONTRACT_ABI = [
   {
     inputs: [
       {

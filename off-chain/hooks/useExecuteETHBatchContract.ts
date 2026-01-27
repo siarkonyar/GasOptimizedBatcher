@@ -3,12 +3,12 @@
 import { useState } from "react";
 import { useChainId } from "wagmi";
 import { config } from "@/config";
-import { MULTI_BATCH_CONTRACT_ABI } from "../lib/ABI";
+import { ETH_BATCH_CONTRACT_ABI } from "../lib/ABI";
 import { Transaction } from "@/types/types";
 import { ethers } from "ethers";
 import { adminWallet } from "@/lib/USDCWallets";
 
-export default function useExecuteMultiBatchContract() {
+export default function useExecuteETHBatchContract() {
   const chainId = useChainId();
   const chain = config.chains.find((c) => c.id === chainId);
 
@@ -25,19 +25,7 @@ export default function useExecuteMultiBatchContract() {
     ? (chain.contracts.multiBatch.address as `0x${string}`)
     : undefined;
 
-  /* // Prepare recipients and amounts arrays
-  const recipientAddresses = recipients.map(
-    (r) => r.address
-  ) as `0x${string}`[];
-
-  // Get actual wallet addresses from private keys
-  const senderAddresses = sendersPrivateKeys.map(
-    (sender) => new ethers.Wallet(sender.address).address
-  ) as `0x${string}`[]; */
-
-  //const amounts = senderAddresses.map(() => getRandomAmount()); //random value for each transaction
-
-  const executeMultiBatch = async (batch: Transaction[]) => {
+  const executeBatch = async (batch: Transaction[]) => {
     try {
       setManualStatus("Preparing Multi Batch Transfer...");
 
@@ -46,11 +34,6 @@ export default function useExecuteMultiBatchContract() {
         setManualStatus("Contract address not found for this chain!");
         return;
       }
-
-      // derive arrays from the batch argument
-      const senders = batch.map((tx) => tx.sender) as `0x${string}`[];
-      const recipientsArr = batch.map((tx) => tx.recipient) as `0x${string}`[];
-      const amounts = batch.map((tx) => tx.amount);
 
       setManualStatus("Connecting admin wallet...");
 
@@ -61,23 +44,55 @@ export default function useExecuteMultiBatchContract() {
       // Create contract instance
       const contract = new ethers.Contract(
         contractAddress,
-        MULTI_BATCH_CONTRACT_ABI,
+        ETH_BATCH_CONTRACT_ABI,
         wallet,
       );
 
-      setManualStatus("Sending batch transaction...");
+      setManualStatus("Collecting signatures from senders...");
 
-      // Call the smart contract with admin wallet
-      const tx = await contract.executeBatch(senders, recipientsArr, amounts);
+      const signatures: string[] = [];
+      const senders = [];
+      const recipients = [];
+      const amounts = [];
+
+      for (let i = 0; i < senders.length; i++) {
+        const tx = batch[i];
+
+        const senderWallet = new ethers.Wallet(
+          tx.senderPrivateKey as string,
+          provider,
+        );
+
+        const nonce = await contract.nonces(tx.sender);
+
+        const messageHash = ethers.solidityPackedKeccak256(
+          ["address", "address", "uint256", "uint256"],
+          [tx.sender, tx.recipient, tx.amount, nonce],
+        );
+
+        const signature = await senderWallet.signMessage(
+          ethers.getBytes(messageHash),
+        );
+
+        signatures.push(signature);
+        senders.push(tx.sender);
+        recipients.push(tx.recipient);
+        amounts.push(tx.amount);
+      }
+
+      setManualStatus("Submitting batch to blockchain...");
+      const txResponse = await contract.executeBatch(
+        senders,
+        recipients,
+        amounts,
+        signatures,
+      );
 
       setManualStatus("Waiting for confirmation...");
+      const txReceipt = await txResponse.wait();
 
-      // Wait for the transaction to be mined
-      const txReceipt = await tx.wait();
-
-      setManualStatus(`Transaction confirmed! Hash: ${tx.hash}`);
       setReceipt(txReceipt);
-
+      setManualStatus("Batch Successful!");
       return txReceipt;
     } catch (error) {
       console.error("Error:", error);
@@ -89,8 +104,8 @@ export default function useExecuteMultiBatchContract() {
   };
 
   return {
-    executeMultiBatch,
-    status,
+    executeBatch,
+    manualStatus,
     receipt,
   };
 }

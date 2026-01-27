@@ -1,6 +1,6 @@
 "use client";
 
-import useExecuteMultiBatchContract from "@/hooks/useExecuteMultiBatchContract";
+import useExecuteMultiBatchContract from "@/hooks/useExecuteETHBatchContract";
 import { generateRandomBatch } from "@/lib/generateRandomUSDCTransaction";
 import React from "react";
 
