@@ -42,4 +42,5 @@ hardhat/typechain-types/
 frontend/build/
 
 # simulation logs
-off-chain/simulation/logs
+off-chain/simulation/EthereumSimulationLogs
+off-chain/simulation/VeChainSimulationLogs
