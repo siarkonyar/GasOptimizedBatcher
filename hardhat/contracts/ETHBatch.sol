@@ -8,7 +8,7 @@ interface IERC20 {
     ) external returns (bool);
 }
 
-contract MultiBatch {
+contract ETHBatch {
     address constant USDC_ADDRESS = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
 
     mapping(address => uint256) public nonces;
@@ -64,12 +64,23 @@ contract MultiBatch {
 
             //recover and verify
             address recoveredSigner = ecrecover(ethHash, v, r, s);
-            require(recoveredSigner != address(0) && recoveredSigner == sender, "Invalid signature");
+            require(
+                recoveredSigner != address(0) && recoveredSigner == sender,
+                "Invalid signature"
+            );
 
+            require(
+                IERC20(USDC_ADDRESS).transferFrom(
+                    sender,
+                    recipients[i],
+                    amounts[i]
+                ),
+                "Transfer failed"
+            );
 
-            require(IERC20(USDC_ADDRESS).transferFrom(sender, recipients[i], amounts[i]), "Transfer failed");
-
-            unchecked { i++; }//this is to optimise gas for loops
+            unchecked {
+                i++;
+            } //this is to optimise gas for loops
         }
     }
 }
