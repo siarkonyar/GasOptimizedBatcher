@@ -126,6 +126,7 @@ async function executeBatch(
   batch: Transaction[],
   batcherWallet: ethers.Wallet,
   batchNumber: number,
+  provider: ethers.JsonRpcProvider,
 ) {
   if (batch.length === 0) {
     console.log(
@@ -142,13 +143,6 @@ async function executeBatch(
     `\n📦 Batch #${batchNumber}: Batching ${batch.length} transactions...`,
   );
 
-  const senders = batch.map((tx) => tx.sender) as `0x${string}`[];
-  const senderPrivateKeys = batch.map(
-    (tx) => tx.senderPrivateKey,
-  ) as `0x${string}`[];
-  const recipients = batch.map((tx) => tx.recipient) as `0x${string}`[];
-  const amounts = batch.map((tx) => tx.amount);
-
   const contract = new ethers.Contract(
     BATCH_CONTRACT_ADDRESS,
     ETH_BATCH_CONTRACT_ABI,
@@ -156,7 +150,43 @@ async function executeBatch(
   );
 
   try {
-    const batchedTx = await contract.executeBatch(senders, recipients, amounts);
+    const signatures: string[] = [];
+    const senders = [];
+    const recipients = [];
+    const amounts = [];
+
+    //every sender needs to sign the transaction to be included in the batch
+    for (let i = 0; i < batch.length; i++) {
+      const tx = batch[i];
+
+      const senderWallet = new ethers.Wallet(
+        tx.senderPrivateKey as string,
+        provider,
+      );
+
+      const nonce = await contract.nonces(tx.sender);
+
+      const messageHash = ethers.solidityPackedKeccak256(
+        ["address", "address", "uint256", "uint256"],
+        [tx.sender, tx.recipient, tx.amount, nonce],
+      );
+
+      const signature = await senderWallet.signMessage(
+        ethers.getBytes(messageHash),
+      );
+
+      signatures.push(signature);
+      senders.push(tx.sender);
+      recipients.push(tx.recipient);
+      amounts.push(tx.amount);
+    }
+
+    const batchedTx = await contract.executeBatch(
+      senders,
+      recipients,
+      amounts,
+      signatures,
+    );
 
     console.log(`🚀 Batch #${batchNumber} Tx Sent: ${batchedTx.hash}`);
 
@@ -232,13 +262,9 @@ async function USDCSimulation() {
   try {
     while (Date.now() < endTime) {
       // Check if it's time to execute a batch
-      if (Date.now() >= nextBatchTime) {
-        await executeBatch(batch, batcherWallet, batchNumber);
-        batch = []; // Clear the batch
-        batchNumber++;
-        nextBatchTime += BATCH_INTERVAL_MS; // Schedule next batch
-      } else if (batch.length >= BATCH_SIZE) {
-        await executeBatch(batch, batcherWallet, batchNumber);
+      if (Date.now() >= nextBatchTime || batch.length >= BATCH_SIZE) {
+        if (Date.now() >= nextBatchTime) nextBatchTime += BATCH_INTERVAL_MS; // schedule the next batch
+        await executeBatch(batch, batcherWallet, batchNumber, provider);
         batch = []; // Clear the batch
         batchNumber++;
       }
@@ -294,7 +320,7 @@ async function USDCSimulation() {
     // Execute any remaining transactions in the batch after simulation ends
     if (batch.length > 0) {
       console.log("\n🔚 Executing final batch with remaining transactions...");
-      await executeBatch(batch, batcherWallet, batchNumber);
+      await executeBatch(batch, batcherWallet, batchNumber, provider);
     }
 
     console.log(`\n--- Simulation Complete ---`);

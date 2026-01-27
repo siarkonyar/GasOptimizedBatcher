@@ -55,7 +55,7 @@ export default function useExecuteETHBatchContract() {
       const recipients = [];
       const amounts = [];
 
-      for (let i = 0; i < senders.length; i++) {
+      for (let i = 0; i < batch.length; i++) {
         const tx = batch[i];
 
         const senderWallet = new ethers.Wallet(
