@@ -1,8 +1,8 @@
 import { generateRandomTransaction } from "../lib/generateRandomUSDCTransaction";
-import { adminWallet } from "../lib/USDCWallets";
+import { adminWallet, senders } from "../lib/USDCWallets";
 import { ethers } from "ethers";
 import type { SimulationLog, Transaction } from "../types/types";
-import { MULTI_BATCH_CONTRACT_ABI } from "../lib/ABI";
+import { ETH_BATCH_CONTRACT_ABI } from "../lib/ABI";
 import * as dotenv from "dotenv";
 import * as fs from "fs";
 import * as path from "path";
@@ -11,7 +11,7 @@ dotenv.config();
 
 const HARDHAT_RPC_URL = "http://127.0.0.1:8545";
 const USDC_ADDRESS = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
-const MULTI_BATCH_ADDRESS = process.env
+const BATCH_CONTRACT_ADDRESS = process.env
   .NEXT_PUBLIC_ETHEREUM_BATCHER_ADDRESS as `0x${string}`;
 const SIMULATION_DURATION = 5 * 60 * 1000;
 const USDC_ABI = [
@@ -47,6 +47,50 @@ const simulationLog: SimulationLog = {
     totalBatchGasUsed: "0",
   },
 };
+
+async function approveSmartContractForAll(provider: ethers.JsonRpcProvider) {
+  console.log("Approving smart contract for all...");
+
+  console.log("This operation is performed only once.");
+
+  try {
+    const abi = [
+      "function approve(address spender, uint256 amount) public returns (bool)",
+    ];
+
+    const approveList = [adminWallet, ...senders];
+
+    for (const sender of approveList) {
+      try {
+        //connect to wallet
+        const wallet = new ethers.Wallet(sender.privateKey, provider);
+
+        //connect to smart contract
+        const usdcContract = new ethers.Contract(USDC_ADDRESS, abi, wallet);
+
+        // Send the approval transaction
+        const tx = await usdcContract.approve(
+          BATCH_CONTRACT_ADDRESS,
+          ethers.MaxUint256,
+        );
+
+        await tx.wait();
+      } catch (error) {
+        const errorMsg = `Failed for ${sender.name}: ${
+          (error as Error).message
+        }`;
+        console.error(errorMsg);
+        return false;
+      }
+    }
+
+    console.log("✅ All wallets approved the smart contract.");
+    console.log("------------------------------------------------");
+  } catch (error) {
+    console.log(`Error during approval: ${(error as Error).message}`);
+    return false;
+  }
+}
 
 function saveLog() {
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
@@ -99,21 +143,20 @@ async function executeBatch(
   );
 
   const senders = batch.map((tx) => tx.sender) as `0x${string}`[];
-  const recipientsArr = batch.map((tx) => tx.recipient) as `0x${string}`[];
+  const senderPrivateKeys = batch.map(
+    (tx) => tx.senderPrivateKey,
+  ) as `0x${string}`[];
+  const recipients = batch.map((tx) => tx.recipient) as `0x${string}`[];
   const amounts = batch.map((tx) => tx.amount);
 
   const contract = new ethers.Contract(
-    MULTI_BATCH_ADDRESS,
-    MULTI_BATCH_CONTRACT_ABI,
+    BATCH_CONTRACT_ADDRESS,
+    ETH_BATCH_CONTRACT_ABI,
     batcherWallet,
   );
 
   try {
-    const batchedTx = await contract.executeBatch(
-      senders,
-      recipientsArr,
-      amounts,
-    );
+    const batchedTx = await contract.executeBatch(senders, recipients, amounts);
 
     console.log(`🚀 Batch #${batchNumber} Tx Sent: ${batchedTx.hash}`);
 
@@ -152,13 +195,16 @@ async function executeBatch(
 }
 
 async function USDCSimulation() {
+  const provider = new ethers.JsonRpcProvider(HARDHAT_RPC_URL);
+
+  await approveSmartContractForAll(provider);
+
   console.log("Starting Background Worker...");
   console.log(
     `⏱️ Simulation Duration: ${SIMULATION_DURATION / 1000 / 60} minutes`,
   );
   console.log(`⏱️ Batch Interval: Every ${BATCH_INTERVAL_MIN} minutes\n`);
 
-  const provider = new ethers.JsonRpcProvider(HARDHAT_RPC_URL);
   const batcherWallet = new ethers.Wallet(adminWallet.privateKey, provider);
 
   const startTime = Date.now();
@@ -220,7 +266,7 @@ async function USDCSimulation() {
             ? txReceipt.gasUsed.toString()
             : String(txReceipt.gasUsed));
 
-        console.log(`\n✅ Individual Tx: ${tx.hash}`);
+        console.log(`✅ Individual Tx: ${tx.hash}`);
         console.log(`⛽ Gas Used: ${gasUsed}`);
 
         console.log("------------------------------------------------");
