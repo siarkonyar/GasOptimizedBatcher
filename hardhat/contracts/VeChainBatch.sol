@@ -13,59 +13,76 @@ contract VeChainBatch {
     IVIP180 public immutable targetToken;
     mapping(address => uint256) public nonces;
 
-    struct BatchTransaction {
-        address sender;
-        address recipient;
-        uint256 amount;
-        uint8 v;
-        bytes32 r;
-        bytes32 s;
-    }
-
     constructor(address usdcAddress) {
         targetToken = IVIP180(usdcAddress);
     }
 
-    function executeBatch(BatchTransaction[] calldata txs) external {
-        uint256 len = txs.length;
+    function executeBatch(
+        address[] calldata senders,
+        address[] calldata recipients,
+        uint256[] calldata amounts,
+        bytes[] calldata signatures
+    ) external {
+        uint256 len = senders.length;
+        require(
+            recipients.length == len && amounts.length == len,
+            "Array mismatch"
+        );
 
-        for (uint256 i = 0; i < len; i++) {
-            // Access data via txs[i].field
-            address currentSender = txs[i].sender;
-
-            bytes32 messageHash = keccak256(
-                abi.encodePacked(
-                    currentSender,
-                    txs[i].recipient,
-                    txs[i].amount,
-                    nonces[currentSender],
-                    address(this)
-                )
+        for (uint256 i = 0; i < len; ) {
+            _verifyAndTransfer(
+                senders[i],
+                recipients[i],
+                amounts[i],
+                signatures[i]
             );
 
-            bytes32 ethSignedMessageHash = keccak256(
-                abi.encodePacked(
-                    "\x19Ethereum Signed Message:\n32",
-                    messageHash
-                )
-            );
-
-            address signer = ecrecover(
-                ethSignedMessageHash,
-                txs[i].v,
-                txs[i].r,
-                txs[i].s
-            );
-            require(signer == currentSender, "Invalid signature");
-
-            nonces[currentSender]++;
-
-            bool success = targetToken.transferFrom(
-                currentSender,
-                txs[i].recipient,
-                txs[i].amount
-            );
-            require(success, "Transfer failed");
+            unchecked {
+                i++;
+            } //this is to optimise gas for loops
         }
+    }
+
+    function _verifyAndTransfer(
+        address sender,
+        address recipient,
+        uint256 amount,
+        bytes calldata signature
+    ) internal {
+        uint256 currentNonce = nonces[sender];
+
+        bytes32 messageHash = keccak256(
+            abi.encodePacked(sender, recipient, amount, currentNonce)
+        );
+
+        //EIP-191 Prefix
+        bytes32 ethHash = keccak256(
+            abi.encodePacked("\x19VeChain Signed Message:\n", messageHash)
+        );
+
+        nonces[sender] = currentNonce + 1;
+
+        require(signature.length == 65, "Invalid signature length");
+
+        bytes32 r;
+        bytes32 s;
+        uint8 v;
+        assembly {
+            r := calldataload(signature.offset)
+            s := calldataload(add(signature.offset, 32))
+            v := byte(0, calldataload(add(signature.offset, 64)))
+        }
+
+        //recover and verify
+        address recoveredSigner = ecrecover(ethHash, v, r, s);
+        require(
+            recoveredSigner != address(0) && recoveredSigner == sender,
+            "Invalid signature"
+        );
+
+        require(
+            targetToken.transferFrom(sender, recipient, amount),
+            "Transfer failed"
+        );
     }
 }
