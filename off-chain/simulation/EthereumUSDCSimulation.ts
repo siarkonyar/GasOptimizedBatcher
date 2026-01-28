@@ -1,7 +1,11 @@
 import { generateRandomTransaction } from "../lib/generateRandomUSDCTransaction";
 import { adminWallet, senders } from "../lib/USDCWallets";
 import { ethers } from "ethers";
-import type { SimulationLog, Transaction } from "../types/types";
+import type {
+  IndividualTxLog,
+  SimulationLog,
+  Transaction,
+} from "../types/types";
 import { ETH_BATCH_CONTRACT_ABI } from "../lib/ABI";
 import * as dotenv from "dotenv";
 import * as fs from "fs";
@@ -47,6 +51,8 @@ const simulationLog: SimulationLog = {
     totalBatchGasUsed: "0",
   },
 };
+
+let individualTransactionsBuffer: IndividualTxLog[] = [];
 
 async function approveSmartContractForAll(provider: ethers.JsonRpcProvider) {
   console.log("Approving smart contract for all...");
@@ -130,7 +136,7 @@ async function executeBatch(
 ) {
   if (batch.length === 0) {
     console.log(
-      `\n⚠️ Batch #${batchNumber}: No transactions to batch. Skipping...`,
+      `⚠️ Batch #${batchNumber}: No transactions to batch. Skipping...`,
     );
     return;
   }
@@ -188,7 +194,7 @@ async function executeBatch(
       signatures,
     );
 
-    console.log(`🚀 Batch #${batchNumber} Tx Sent: ${batchedTx.hash}`);
+    console.log(`Batch #${batchNumber} Tx Sent: ${batchedTx.hash}`);
 
     const batchedTxReceipt = await batchedTx.wait();
 
@@ -219,8 +225,12 @@ async function executeBatch(
         amount: tx.amount.toString(),
       })),
     });
+
+    //data of individual transactions wont be added to the dataset until the batch is executed without any issues.
+    simulationLog.individualTransactions.push(...individualTransactionsBuffer);
+    individualTransactionsBuffer = [];
   } catch (error) {
-    console.error(`\n❌ Batch #${batchNumber} execution failed:`, error);
+    console.error(`❌ Batch #${batchNumber} execution failed:`, error);
   }
 }
 
@@ -298,7 +308,8 @@ async function USDCSimulation() {
         console.log("------------------------------------------------");
 
         //add the transaction to the log, if it fails it wont be added
-        simulationLog.individualTransactions.push({
+        //add them to the buffer first. if the batch fails, we wont add these transactions to the data.
+        individualTransactionsBuffer.push({
           txHash: tx.hash,
           sender: transaction.sender,
           recipient: transaction.recipient,
@@ -319,16 +330,16 @@ async function USDCSimulation() {
     }
     // Execute any remaining transactions in the batch after simulation ends
     if (batch.length > 0) {
-      console.log("\n🔚 Executing final batch with remaining transactions...");
+      console.log("Executing final batch with remaining transactions...");
       await executeBatch(batch, batcherWallet, batchNumber, provider);
     }
 
-    console.log(`\n--- Simulation Complete ---`);
+    console.log(`--- Simulation Complete ---`);
 
     simulationLog.simulationEndTime = Date.now();
     saveLog();
   } catch (error) {
-    console.error("\n❌ FATAL ERROR:", error);
+    console.error("❌ FATAL ERROR:", error);
     simulationLog.simulationEndTime = Date.now();
     saveLog();
   } finally {
