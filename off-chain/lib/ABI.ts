@@ -213,7 +213,7 @@ export const VECHAIN_BATCH_CONTRACT_ABI = [
     stateMutability: "view",
     type: "function",
   },
-];
+] as const;
 
 export const VECHAIN_USDC_CONTRACT_ABI = [
   {
