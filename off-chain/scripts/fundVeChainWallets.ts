@@ -1,29 +1,21 @@
 import {
   ProviderInternalBaseWallet,
-  signerUtils,
   ThorClient,
-  TracerName,
-  VeChainPrivateKeySigner,
   VeChainProvider,
 } from "@vechain/sdk-network";
 import {
   Clause,
   Address,
-  VET,
   VTHO,
   TransactionClause,
   HexUInt,
   Transaction,
   TransactionBody,
-  networkInfo,
-  Account,
   Secp256k1,
   Hex,
-  Units,
-  BlockId,
 } from "@vechain/sdk-core";
 import * as dotenv from "dotenv";
-import { recipients, godWallet } from "../lib/vechain-wallets";
+import { recipients } from "../lib/vechain-wallets";
 import { Mnemonic } from "@vechain/sdk-core";
 
 dotenv.config();
