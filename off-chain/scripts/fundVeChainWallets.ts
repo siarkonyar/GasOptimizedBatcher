@@ -1,30 +1,24 @@
 import {
   ProviderInternalBaseWallet,
-  signerUtils,
   ThorClient,
-  TracerName,
-  VeChainPrivateKeySigner,
   VeChainProvider,
 } from "@vechain/sdk-network";
 import {
   Clause,
   Address,
-  VET,
   VTHO,
   TransactionClause,
   HexUInt,
   Transaction,
   TransactionBody,
-  networkInfo,
-  Account,
   Secp256k1,
   Hex,
-  Units,
-  BlockId,
+  ABIContract,
 } from "@vechain/sdk-core";
 import * as dotenv from "dotenv";
-import { recipients, godWallet } from "../lib/vechain-wallets";
+import { recipients } from "../lib/vechain-wallets";
 import { Mnemonic } from "@vechain/sdk-core";
+import { VECHAIN_USDC_CONTRACT_ABI } from "@/lib/ABI";
 
 dotenv.config();
 
@@ -64,16 +58,25 @@ const provider = new VeChainProvider(
 );
 
 async function seed() {
-  console.log("Starting Seeding Process (Native SDK Mode)...");
+  console.log("Starting Seeding Process...");
 
   const latestBlock = await thorSoloClient.blocks.getBestBlockCompressed();
   const chainTag = await thorSoloClient.nodes.getChaintag();
 
-  const clauses: TransactionClause[] = recipients.map(
-    (r) =>
-      Clause.transferVTHOToken(Address.of(r.address), VTHO.of(10000))
-        .clause as TransactionClause,
-  );
+  const clauses: TransactionClause[] = [
+    ...recipients.map(
+      (r) =>
+        Clause.transferVTHOToken(Address.of(r.address), VTHO.of(10000))
+          .clause as TransactionClause,
+    ),
+    ...recipients.map((r) =>
+      Clause.callFunction(
+        Address.of(USDC_ADDRESS),
+        ABIContract.ofAbi(VECHAIN_USDC_CONTRACT_ABI).getFunction("mint"),
+        [r.address, 10000],
+      ),
+    ),
+  ];
 
   const gas = await thorSoloClient.gas.estimateGas(
     clauses,
@@ -107,37 +110,7 @@ async function seed() {
   console.log(txReceipt);
 }
 
-async function debug() {
-  // 1 - Create thor client for testnet
-  const thorClient = ThorClient.at(THOR_URL);
-
-  // 2 - Trace the clause.
-  const result = await thorClient.debug.traceTransactionClause(
-    {
-      target: {
-        blockId: BlockId.of(
-          "0x00000002736478ca967134a0010905107ab29472398589b1059283d383df3294",
-        ),
-        transaction: BlockId.of(
-          "0xdbeb6ade555c28b7a0bd27995dd83ef4f8a65525e4e1eaff720c2a46c2d08104",
-        ),
-        clauseIndex: 0,
-      },
-      config: {},
-    },
-    "call" as TracerName,
-  );
-
-  // 3 - Print the result.
-  console.log(result);
-}
-
 seed().catch((error) => {
-  console.error("Fatal error:", error);
-  process.exit(1);
-});
-
-debug().catch((error) => {
   console.error("Fatal error:", error);
   process.exit(1);
 });
