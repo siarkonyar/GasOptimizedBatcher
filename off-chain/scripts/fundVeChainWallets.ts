@@ -107,37 +107,7 @@ async function seed() {
   console.log(txReceipt);
 }
 
-async function debug() {
-  // 1 - Create thor client for testnet
-  const thorClient = ThorClient.at(THOR_URL);
-
-  // 2 - Trace the clause.
-  const result = await thorClient.debug.traceTransactionClause(
-    {
-      target: {
-        blockId: BlockId.of(
-          "0x00000002736478ca967134a0010905107ab29472398589b1059283d383df3294",
-        ),
-        transaction: BlockId.of(
-          "0xdbeb6ade555c28b7a0bd27995dd83ef4f8a65525e4e1eaff720c2a46c2d08104",
-        ),
-        clauseIndex: 0,
-      },
-      config: {},
-    },
-    "call" as TracerName,
-  );
-
-  // 3 - Print the result.
-  console.log(result);
-}
-
 seed().catch((error) => {
-  console.error("Fatal error:", error);
-  process.exit(1);
-});
-
-debug().catch((error) => {
   console.error("Fatal error:", error);
   process.exit(1);
 });
