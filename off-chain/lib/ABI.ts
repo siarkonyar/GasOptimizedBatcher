@@ -455,4 +455,4 @@ export const VECHAIN_USDC_CONTRACT_ABI = [
     outputs: [],
     stateMutability: "nonpayable",
   },
-];
+] as const;

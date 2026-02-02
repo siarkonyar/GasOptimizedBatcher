@@ -13,10 +13,12 @@ import {
   TransactionBody,
   Secp256k1,
   Hex,
+  ABIContract,
 } from "@vechain/sdk-core";
 import * as dotenv from "dotenv";
 import { recipients } from "../lib/vechain-wallets";
 import { Mnemonic } from "@vechain/sdk-core";
+import { VECHAIN_USDC_CONTRACT_ABI } from "@/lib/ABI";
 
 dotenv.config();
 
@@ -56,16 +58,25 @@ const provider = new VeChainProvider(
 );
 
 async function seed() {
-  console.log("Starting Seeding Process (Native SDK Mode)...");
+  console.log("Starting Seeding Process...");
 
   const latestBlock = await thorSoloClient.blocks.getBestBlockCompressed();
   const chainTag = await thorSoloClient.nodes.getChaintag();
 
-  const clauses: TransactionClause[] = recipients.map(
-    (r) =>
-      Clause.transferVTHOToken(Address.of(r.address), VTHO.of(10000))
-        .clause as TransactionClause,
-  );
+  const clauses: TransactionClause[] = [
+    ...recipients.map(
+      (r) =>
+        Clause.transferVTHOToken(Address.of(r.address), VTHO.of(10000))
+          .clause as TransactionClause,
+    ),
+    ...recipients.map((r) =>
+      Clause.callFunction(
+        Address.of(USDC_ADDRESS),
+        ABIContract.ofAbi(VECHAIN_USDC_CONTRACT_ABI).getFunction("mint"),
+        [r.address, 10000],
+      ),
+    ),
+  ];
 
   const gas = await thorSoloClient.gas.estimateGas(
     clauses,
