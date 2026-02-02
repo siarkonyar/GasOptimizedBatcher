@@ -27,7 +27,7 @@ const MINIMAL_ERC20_ABI = [
 ] as const;
 
 async function checkBalances() {
-  console.log("🔍 Checking Wallet Balances...\n");
+  console.log("Checking Wallet Balances...\n");
   const thorClient = ThorClient.at(THOR_URL);
 
   // Load USDC Contract Interface
@@ -42,12 +42,10 @@ async function checkBalances() {
 
   for (const recipient of recipients) {
     try {
-      // 1. Get Native VET & VTHO Balance via Account lookup
       const accountInfo = await thorClient.accounts.getAccount(
         Address.of(recipient.address),
       );
 
-      // 2. Get USDC Balance (Contract View Call)
       const usdcRawBalance = await usdcContract.read.balanceOf(
         recipient.address,
       );
