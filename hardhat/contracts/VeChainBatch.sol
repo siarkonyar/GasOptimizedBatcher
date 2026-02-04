@@ -9,8 +9,14 @@ interface IVIP180 {
     ) external returns (bool);
 }
 
+interface IExtension {
+    function blake2b256(bytes memory data) external view returns (bytes32);
+}
+
 contract VeChainBatch {
     IVIP180 public immutable targetToken;
+    address constant EXTENSION_ADDR =
+        0x0000000000000000000000457874656E73696F6e;
     mapping(address => uint256) public nonces;
 
     constructor(address usdcAddress) {
@@ -49,20 +55,18 @@ contract VeChainBatch {
         uint256 amount,
         bytes calldata signature
     ) internal {
+        require(signature.length == 65, "Invalid signature length");
         uint256 currentNonce = nonces[sender];
 
-        bytes32 messageHash = keccak256(
-            abi.encodePacked(sender, recipient, amount, currentNonce)
+        bytes memory rawMessage = abi.encodePacked(
+            sender,
+            recipient,
+            amount,
+            currentNonce
         );
-
-        //EIP-191 Prefix
-        bytes32 ethHash = keccak256(
-            abi.encodePacked("\x19VeChain Signed Message:\n", messageHash)
-        );
+        bytes32 messageHash = IExtension(EXTENSION_ADDR).blake2b256(rawMessage);
 
         nonces[sender] = currentNonce + 1;
-
-        require(signature.length == 65, "Invalid signature length");
 
         bytes32 r;
         bytes32 s;
@@ -74,7 +78,7 @@ contract VeChainBatch {
         }
 
         //recover and verify
-        address recoveredSigner = ecrecover(ethHash, v, r, s);
+        address recoveredSigner = ecrecover(messageHash, v, r, s);
         require(
             recoveredSigner != address(0) && recoveredSigner == sender,
             "Invalid signature"
