@@ -28,7 +28,7 @@ contract ETHBatch {
             "Array mismatch"
         );
 
-        for (uint256 i = 0; i < len; i++) {
+        for (uint256 i = 0; i < len; ) {
             _verifyAndTransfer(
                 senders[i],
                 recipients[i],
