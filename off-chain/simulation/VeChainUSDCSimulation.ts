@@ -110,12 +110,8 @@ async function approveSmartContractForAll(provider: VeChainProvider) {
 
     const signedTransaction = Transaction.of(body).sign(godPrivateKey);
 
-    const encodedRaw = signedTransaction.encoded;
-
-    const decodedTx = Transaction.decode(encodedRaw, true);
-
     const sendTransactionResult =
-      await thorSoloClient.transactions.sendTransaction(decodedTx);
+      await thorSoloClient.transactions.sendTransaction(signedTransaction);
 
     const txReceipt = await thorSoloClient.transactions.waitForTransaction(
       sendTransactionResult.id,
