@@ -340,9 +340,21 @@ async function VeChainUSDCSimulation() {
       const sendTransactionResult =
         await thorSoloClient.transactions.sendTransaction(signedTransaction);
 
-      const txReceipt = await thorSoloClient.transactions.waitForTransaction(
-        sendTransactionResult.id,
-      );
+      try {
+        const txReceipt = await thorSoloClient.transactions.waitForTransaction(
+          sendTransactionResult.id,
+        );
+
+        const gasUsed = String(txReceipt!.gasUsed);
+
+        console.log(`✅ Individual Tx: ${txReceipt?.reverted}`);
+        console.log(`⛽ Gas Used: ${gasUsed}`);
+
+        console.log("------------------------------------------------");
+      } catch (batchTxError) {
+        console.error("Transaction failed:", batchTxError);
+        continue;
+      }
     }
   } catch (error) {
     console.error("❌ FATAL ERROR:", error);
