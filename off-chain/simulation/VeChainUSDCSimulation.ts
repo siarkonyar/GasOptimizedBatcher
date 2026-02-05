@@ -223,9 +223,9 @@ async function executeBatch(batch: TransactionType[], batchNumber: number) {
       const signature = Secp256k1.sign(
         messageHash.bytes,
         HexUInt.of(tx.senderPrivateKey!).bytes,
-      ).toString();
+      );
 
-      signatures.push(signature);
+      signatures.push(Hex.of(signature).toString());
       senders.push(tx.sender);
       recipients.push(tx.recipient);
       amounts.push(tx.amount);
