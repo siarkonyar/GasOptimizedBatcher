@@ -19,10 +19,12 @@ import {
   Secp256k1,
   TransactionBody,
   Blake2b256,
+  BlockId,
 } from "@vechain/sdk-core";
 import {
   ProviderInternalBaseWallet,
   ThorClient,
+  TracerName,
   VeChainProvider,
 } from "@vechain/sdk-network";
 import * as dotenv from "dotenv";
@@ -182,6 +184,28 @@ async function approveSmartContractForAll(provider: VeChainProvider) {
   }
 }
 
+async function debug(blockId: string, transaction: string) {
+  const result = await thorSoloClient.debug.traceTransactionClause(
+    {
+      target: {
+        blockId: BlockId.of(blockId),
+        transaction: BlockId.of(transaction),
+        clauseIndex: 0,
+      },
+      config: {},
+    },
+    "call" as TracerName,
+  );
+
+  console.log("--------------------------------------");
+
+  console.log("Debug:");
+
+  console.log(result);
+
+  console.log("--------------------------------------");
+}
+
 async function executeBatch(batch: TransactionType[], batchNumber: number) {
   if (batch.length === 0) {
     console.log(
@@ -262,6 +286,7 @@ async function executeBatch(batch: TransactionType[], batchNumber: number) {
     console.log(txReceipt);
     simulationLog.individualTransactions.push(...individualTransactionsBuffer);
     individualTransactionsBuffer = [];
+    debug(txReceipt?.meta.blockID as string, txReceipt?.meta.txID as string);
   } catch (error) {
     console.error(`❌ Batch #${batchNumber} execution failed:`, error);
   }
@@ -355,6 +380,11 @@ async function VeChainUSDCSimulation() {
         console.log(`⛽ Gas Used: ${gasUsed}`);
 
         console.log("------------------------------------------------");
+
+        debug(
+          txReceipt?.meta.blockID as string,
+          txReceipt?.meta.txID as string,
+        );
 
         //add the transaction to the log, if it fails it wont be added
         //add them to the buffer first. if the batch fails, we wont add these transactions to the data.
