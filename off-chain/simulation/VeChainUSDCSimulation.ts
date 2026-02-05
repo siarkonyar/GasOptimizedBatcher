@@ -1,205 +1,402 @@
-import { VECHAIN_BATCH_CONTRACT_ABI } from "@/lib/ABI";
-import { godWallet } from "@/lib/vechain-wallets";
 import {
-  Keccak256,
-  Secp256k1,
+  VECHAIN_BATCH_CONTRACT_ABI,
+  VECHAIN_USDC_CONTRACT_ABI,
+} from "@/lib/ABI";
+import { recipients } from "@/lib/vechain-wallets";
+import {
+  IndividualTxLog,
+  SimulationLog,
+  Transaction as TransactionType,
+} from "@/types/types";
+import {
   ABIContract,
-  ABIFunction,
   Address,
-  Transaction,
-  HexUInt,
-  Mnemonic,
+  Clause,
   Hex,
+  HexUInt,
+  Transaction,
+  Mnemonic,
+  Secp256k1,
+  TransactionBody,
+  Blake2b256,
 } from "@vechain/sdk-core";
-import { ThorClient } from "@vechain/sdk-network";
+import {
+  ProviderInternalBaseWallet,
+  ThorClient,
+  VeChainProvider,
+} from "@vechain/sdk-network";
 import * as dotenv from "dotenv";
-import { Abi } from "viem";
-import { Transaction as MetaInputTx } from "@/types/types";
+import * as fs from "fs";
+import * as path from "path";
+import { ethers } from "ethers";
 import { generateRandomVeChainTransaction } from "@/lib/generateRandomUSDCTransaction";
+
+//batching variables
+const BATCH_SIZE = 5;
+const BATCH_INTERVAL_MIN = 1;
+const BATCH_INTERVAL_MS = BATCH_INTERVAL_MIN * 60 * 1000;
+const SIMULATION_DURATION = 5 * 60 * 1000;
 
 dotenv.config();
 
-const THOR_RPC_URL = "http://127.0.0.1:8669";
-const BATCH_CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_VECHAIN_BATCHER_ADDRESS!;
+const THOR_URL = "http://127.0.0.1:8669";
+const USDC_ADDRESS = process.env.NEXT_PUBLIC_VECHAIN_USDC_ADDRESS as string;
+const BATCHER_ADDRESS = process.env
+  .NEXT_PUBLIC_VECHAIN_BATCHER_ADDRESS as string;
+
+const thorSoloClient = ThorClient.at(THOR_URL, {
+  isPollingEnabled: false,
+});
+
+const batchContract = thorSoloClient.contracts.load(
+  BATCHER_ADDRESS,
+  VECHAIN_BATCH_CONTRACT_ABI,
+);
 
 const godMnemonic =
   "denial kitchen pet squirrel other broom bar gas better priority spoil cross";
-const godPrivateKeyBytes = Mnemonic.toPrivateKey(godMnemonic.split(" "));
-const ADMIN_PRIVATE_KEY = Hex.of(godPrivateKeyBytes).toString();
-const godPublicKey = Secp256k1.derivePublicKey(godPrivateKeyBytes);
-const ADMIN_ADDRESS = Address.ofPublicKey(godPublicKey).toString();
+const godPrivateKey = Mnemonic.toPrivateKey(godMnemonic.split(" "));
+const godPublicKey = Secp256k1.derivePublicKey(godPrivateKey);
+const godAddress = Address.ofPublicKey(godPublicKey).toString();
 
-const thorClient = ThorClient.at(THOR_RPC_URL);
+const senderAccount: { privateKey: string; address: string } = {
+  privateKey: Hex.of(godPrivateKey).toString(),
+  address: godAddress,
+};
 
-const contractABI = VECHAIN_BATCH_CONTRACT_ABI as Abi;
+const provider = new VeChainProvider(
+  // Thor client used by the provider
+  thorSoloClient,
 
-// Build ABI helpers
-const batchContract = ABIContract.ofAbi(contractABI);
-const executeBatchFn = batchContract.getFunction("executeBatch") as ABIFunction;
-const noncesFn = batchContract.getFunction("nonces") as ABIFunction;
+  // Internal wallet used by the provider (needed to call the getSigner() method)
+  new ProviderInternalBaseWallet([
+    {
+      privateKey: HexUInt.of(senderAccount.privateKey).bytes,
+      address: senderAccount.address,
+    },
+  ]),
 
-// Your transaction shape:
-// { sender, recipient, amount, senderPrivateKey }
+  // Disable fee delegation (BY DEFAULT IT IS DISABLED)
+  false,
+);
 
-// Sign a single meta‑transaction according to your Solidity logic
+const simulationLog: SimulationLog = {
+  simulationStartTime: Date.now(),
+  simulationEndTime: 0,
+  simulationDuration: SIMULATION_DURATION,
+  batchSize: BATCH_SIZE,
+  batchIntervalMinutes: BATCH_INTERVAL_MIN,
+  individualTransactions: [],
+  batches: [],
+  summary: {
+    totalIndividualTransactions: 0,
+    totalBatches: 0,
+    totalIndividualGasUsed: "0",
+    totalBatchGasUsed: "0",
+  },
+};
 
-async function debugNonces(senders: string[]) {
-  for (const s of senders) {
-    const n = await getNonce(s);
-    console.log(`On-chain nonce for ${s}: ${n}`);
-  }
-}
-async function signMetaTx(
-  tx: MetaInputTx,
-  nonce: bigint,
-): Promise<{ v: number; r: string; s: string }> {
-  // messageHash = keccak256(abi.encodePacked(sender, recipient, amount, nonce, address(this)))
-  const encodedPacked = Buffer.concat([
-    // address is 20 bytes left‑padded in abi.encodePacked
-    Buffer.from(tx.sender.replace("0x", "").padStart(40, "0"), "hex"),
-    Buffer.from(tx.recipient.replace("0x", "").padStart(40, "0"), "hex"),
-    // uint256 amount
-    Buffer.from(BigInt(tx.amount).toString(16).padStart(64, "0"), "hex"),
-    // uint256 nonce
-    Buffer.from(nonce.toString(16).padStart(64, "0"), "hex"),
-    // address(this)
-    Buffer.from(
-      BATCH_CONTRACT_ADDRESS.replace("0x", "").padStart(40, "0"),
-      "hex",
-    ),
-  ]);
+let individualTransactionsBuffer: IndividualTxLog[] = [];
 
-  const messageHash = Keccak256.of(encodedPacked).bytes;
-
-  // ethSignedMessageHash = keccak256("\x19Ethereum Signed Message:\n32" ++ messageHash)
-  const prefix = Buffer.from("\x19Ethereum Signed Message:\n32", "utf-8");
-  const finalHash = Keccak256.of(
-    Buffer.concat([prefix, Buffer.from(messageHash)]),
-  ).bytes;
-
-  const pkBytes = Buffer.from(tx.senderPrivateKey!.replace("0x", ""), "hex");
-  const sig = Secp256k1.sign(finalHash, pkBytes);
-
-  const r = "0x" + Buffer.from(sig.slice(0, 32)).toString("hex");
-  const s = "0x" + Buffer.from(sig.slice(32, 64)).toString("hex");
-  const v = sig[64] + 27;
-
-  return { v, r, s };
-}
-
-// Read nonce for a given sender from VeChainBatch.nonces(sender)
-async function getNonce(sender: string): Promise<bigint> {
-  const res = await thorClient.contracts.executeCall(
-    BATCH_CONTRACT_ADDRESS,
-    noncesFn, // ABIFunction for `nonces(address)`
-    [sender],
+function saveLog() {
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const logFileName = `simulation-log-${timestamp}.json`;
+  const logPath = path.join(
+    process.cwd(),
+    "simulation/EthereumSimulationLogs",
+    logFileName,
   );
 
-  // result.plain is `unknown` in the typings, so assert / narrow it
-  const plain = res.result.plain as string | number | bigint;
+  // Calculate total gas for individual and batched transactions
+  const totalIndividualGas = simulationLog.individualTransactions.reduce(
+    (sum, tx) => sum + BigInt(tx.gasUsed),
+    BigInt(0),
+  );
+  const totalBatchGas = simulationLog.batches.reduce(
+    (sum, batch) => sum + BigInt(batch.gasUsed),
+    BigInt(0),
+  );
 
-  return BigInt(plain.toString());
+  simulationLog.summary = {
+    totalIndividualTransactions: simulationLog.individualTransactions.length,
+    totalBatches: simulationLog.batches.length,
+    totalIndividualGasUsed: totalIndividualGas.toString(),
+    totalBatchGasUsed: totalBatchGas.toString(),
+  };
+
+  fs.writeFileSync(logPath, JSON.stringify(simulationLog, null, 2));
+  console.log(`\n📝 Log saved to: ${logFileName}`);
 }
 
-// Main function: sign all meta‑txs and executeBatch
-export async function executeMetaBatch(txs: MetaInputTx[]): Promise<void> {
-  if (txs.length === 0) return;
+async function approveSmartContractForAll(provider: VeChainProvider) {
+  console.log("Approving smart contract for all...");
 
-  // Group by sender so we can increment nonces locally
-  const bySender = new Map<string, MetaInputTx[]>();
-  for (const t of txs) {
-    const key = Address.of(t.sender).toString();
-    if (!bySender.has(key)) bySender.set(key, []);
-    bySender.get(key)!.push(t);
-  }
+  console.log("This operation is performed only once.");
 
-  // Build BatchTransaction[] with signatures
-  const batchTxs: {
-    sender: string;
-    recipient: string;
-    amount: bigint;
-    v: number;
-    r: string;
-    s: string;
-  }[] = [];
+  const latestBlock = await thorSoloClient.blocks.getBestBlockCompressed();
+  const chainTag = await thorSoloClient.nodes.getChaintag();
 
-  for (const [sender, list] of bySender.entries()) {
-    let nonce = await getNonce(sender); // on‑chain nonce per sender
+  try {
+    const clauses: Clause[] = [
+      ...recipients.map((r) =>
+        Clause.callFunction(
+          Address.of(USDC_ADDRESS),
+          ABIContract.ofAbi(VECHAIN_USDC_CONTRACT_ABI).getFunction("approve"),
+          [r.address, 100000],
+        ),
+      ),
+    ];
 
-    for (const tx of list) {
-      console.log(`Sender: ${tx.sender}`);
-      console.log(`Amount (Raw): ${tx.amount}`); // Is this 1000000 or 1?
-      console.log(`Nonce: ${nonce}`);
-      const sig = await signMetaTx(tx, nonce);
-      batchTxs.push({
-        sender,
-        recipient: Address.of(tx.recipient).toString(),
-        amount: BigInt(tx.amount),
-        v: sig.v,
-        r: sig.r,
-        s: sig.s,
-      });
-      nonce += BigInt(1);
-    }
-  }
+    const gas = await thorSoloClient.gas.estimateGas(
+      clauses,
+      senderAccount.address,
+    );
 
-  // Encode executeBatch(BatchTransaction[])
-  const data = executeBatchFn.encodeData([batchTxs]).toString();
-
-  // Build clause
-  const clauses = [
-    {
-      to: BATCH_CONTRACT_ADDRESS,
-      value: 0,
-      data,
-    },
-  ];
-
-  // Estimate gas and build tx body using SDK helpers [[Build tx](https://docs.vechain.org/developer-resources/how-to-build-on-vechain/write-data/transactions#build-transaction)]
-  const gasResult = await thorClient.gas.estimateGas(clauses, ADMIN_ADDRESS);
-
-  const txBody = await thorClient.transactions.buildTransactionBody(
-    clauses,
-    gasResult.totalGas,
-    {
-      gasPriceCoef: 0,
+    const body: TransactionBody = {
+      chainTag,
+      blockRef: latestBlock !== null ? latestBlock.id.slice(0, 18) : "0x0",
       expiration: 32,
-    },
-  );
+      clauses,
+      gasPriceCoef: 232,
+      gas: gas.totalGas,
+      dependsOn: null,
+      nonce: Date.now(),
+    };
 
-  // Sign and send transaction [[Transactions](https://docs.vechain.org/developer-resources/sdks-and-providers/sdk/transactions); [Thor client tx](https://docs.vechain.org/developer-resources/sdks-and-providers/sdk/thor-client#transactions)]
-  const adminPkBytes = HexUInt.of(ADMIN_PRIVATE_KEY.replace("0x", "")).bytes;
+    const signedTransaction = Transaction.of(body).sign(godPrivateKey);
 
-  const signedTx = Transaction.of(txBody).sign(adminPkBytes);
+    const sendTransactionResult =
+      await thorSoloClient.transactions.sendTransaction(signedTransaction);
 
-  const sendResult = await thorClient.transactions.sendRawTransaction(
-    HexUInt.of(signedTx.encoded).toString(),
-  );
+    const txReceipt = await thorSoloClient.transactions.waitForTransaction(
+      sendTransactionResult.id,
+    );
 
-  console.log("Built tx body:", txBody);
-  console.log("Signed tx id:", sendResult.id);
+    console.log(txReceipt);
 
-  const receipt = await thorClient.transactions.waitForTransaction(
-    sendResult.id,
-  );
-  console.log("Receipt:", receipt);
-
-  console.log("Batch tx id:", sendResult.id);
-  /*
-  const reason = await thorClient.transactions.getRevertReason(sendResult.id);
-  console.log("Revert reason:", reason); */
-}
-
-async function main() {
-  const txs: MetaInputTx[] = [];
-
-  for (let i = 0; i < 10; i++) {
-    const t = await generateRandomVeChainTransaction(); // must return MetaInputTx
-    txs.push(t);
+    console.log("✅ All wallets approved the smart contract.");
+    console.log("------------------------------------------------");
+  } catch (error) {
+    console.log(`Error during approval: ${(error as Error).message}`);
+    return false;
   }
-  await executeMetaBatch(txs);
 }
-main().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+
+async function executeBatch(batch: TransactionType[], batchNumber: number) {
+  if (batch.length === 0) {
+    console.log(
+      `⚠️ Batch #${batchNumber}: No transactions to batch. Skipping...`,
+    );
+    return;
+  }
+
+  if (batch.length >= BATCH_SIZE) {
+    console.log(`Batch size is reached.`);
+  }
+
+  console.log(
+    `\n📦 Batch #${batchNumber}: Batching ${batch.length} transactions...`,
+  );
+
+  try {
+    const signatures: string[] = [];
+    const senders = [];
+    const recipients = [];
+    const amounts = [];
+
+    //every sender needs to sign the transaction to be included in the batch
+    for (let i = 0; i < batch.length; i++) {
+      const tx = batch[i];
+
+      // Note: The SDK returns an array of return values.
+      // Since 'nonces' returns one value, we take the first item.
+      const nonceResult = await batchContract.read.nonces(tx.sender);
+      const nonce = nonceResult[0];
+
+      const packedData = ethers.solidityPacked(
+        ["address", "address", "uint256", "uint256"],
+        [tx.sender, tx.recipient, tx.amount, nonce],
+      );
+
+      const messageHash = Blake2b256.of(packedData);
+
+      const signature = Secp256k1.sign(
+        messageHash.bytes,
+        HexUInt.of(tx.senderPrivateKey!).bytes,
+      );
+
+      signatures.push(Hex.of(signature).toString());
+      senders.push(tx.sender);
+      recipients.push(tx.recipient);
+      amounts.push(tx.amount);
+    }
+
+    const clause: Clause = Clause.callFunction(
+      Address.of(BATCHER_ADDRESS),
+      ABIContract.ofAbi(VECHAIN_BATCH_CONTRACT_ABI).getFunction("executeBatch"),
+      [senders, recipients, amounts, signatures],
+    );
+
+    const batchTransaction = {
+      clauses: [clause],
+    };
+
+    const batchGasEstimateGas = await thorSoloClient.gas.estimateGas(
+      batchTransaction.clauses,
+    );
+
+    const batchTxBody = await thorSoloClient.transactions.buildTransactionBody(
+      batchTransaction.clauses,
+      batchGasEstimateGas.totalGas,
+    );
+
+    const signedTransaction = Transaction.of(batchTxBody).sign(godPrivateKey);
+
+    const sendTransactionResult =
+      await thorSoloClient.transactions.sendTransaction(signedTransaction);
+
+    const txReceipt = await thorSoloClient.transactions.waitForTransaction(
+      sendTransactionResult.id,
+    );
+
+    console.log(txReceipt);
+    simulationLog.individualTransactions.push(...individualTransactionsBuffer);
+    individualTransactionsBuffer = [];
+  } catch (error) {
+    console.error(`❌ Batch #${batchNumber} execution failed:`, error);
+  }
+}
+
+async function VeChainUSDCSimulation() {
+  console.log("Starting Background Worker...");
+  console.log(
+    `⏱️ Simulation Duration: ${SIMULATION_DURATION / 1000 / 60} minutes`,
+  );
+  console.log(`⏱️ Batch Interval: Every ${BATCH_INTERVAL_MIN} minutes\n`);
+
+  const startTime = Date.now();
+  const endTime = startTime + SIMULATION_DURATION;
+  let nextBatchTime = startTime + BATCH_INTERVAL_MS;
+  let batch: TransactionType[] = [];
+  let batchNumber = 1;
+
+  const countdownInterval = setInterval(() => {
+    const remaining = Math.ceil((endTime - Date.now()) / 1000);
+    const nextBatchIn = Math.ceil((nextBatchTime - Date.now()) / 1000);
+    if (remaining > 0) {
+      process.stdout.write(
+        `\r⏳ Total remaining: ${remaining}s | Next batch in: ${nextBatchIn}s | Collected: ${batch.length} txs `,
+      );
+    } else {
+      process.stdout.write(
+        `\r⌛ Time Window Closed.                                          \n`,
+      );
+      clearInterval(countdownInterval);
+    }
+  }, 1000);
+
+  try {
+    const latestBlock = await thorSoloClient.blocks.getBestBlockCompressed();
+    const chainTag = await thorSoloClient.nodes.getChaintag();
+    while (Date.now() < endTime) {
+      // Check if it's time to execute a batch
+      if (Date.now() >= nextBatchTime || batch.length >= BATCH_SIZE) {
+        if (Date.now() >= nextBatchTime) nextBatchTime += BATCH_INTERVAL_MS; // schedule the next batch
+        await executeBatch(batch, batchNumber);
+        batch = []; // Clear the batch
+        batchNumber++;
+      }
+
+      try {
+        const transaction = await generateRandomVeChainTransaction();
+
+        const individualWallet = {
+          privateKey: transaction.senderPrivateKey,
+          address: transaction.sender,
+        };
+        const clauses: Clause[] = [
+          Clause.callFunction(
+            Address.of(USDC_ADDRESS),
+            ABIContract.ofAbi(VECHAIN_USDC_CONTRACT_ABI).getFunction(
+              "transfer",
+            ),
+            [transaction.recipient, transaction.amount],
+          ),
+        ];
+
+        const gas = await thorSoloClient.gas.estimateGas(
+          clauses,
+          individualWallet.address,
+        );
+
+        const body: TransactionBody = {
+          chainTag,
+          blockRef: latestBlock !== null ? latestBlock.id.slice(0, 18) : "0x0",
+          expiration: 32,
+          clauses,
+          gasPriceCoef: 232, //TODO: make this 0 late
+          gas: gas.totalGas,
+          dependsOn: null,
+          nonce: Date.now(),
+        };
+
+        const signedTransaction = Transaction.of(body).sign(godPrivateKey);
+
+        const sendTransactionResult =
+          await thorSoloClient.transactions.sendTransaction(signedTransaction);
+
+        const txReceipt = await thorSoloClient.transactions.waitForTransaction(
+          sendTransactionResult.id,
+        );
+
+        const gasUsed = String(txReceipt!.gasUsed);
+
+        console.log(`✅ Individual Tx: ${txReceipt?.reverted}`);
+        console.log(`⛽ Gas Used: ${gasUsed}`);
+
+        console.log("------------------------------------------------");
+
+        //add the transaction to the log, if it fails it wont be added
+        //add them to the buffer first. if the batch fails, we wont add these transactions to the data.
+        individualTransactionsBuffer.push({
+          sender: transaction.sender,
+          recipient: transaction.recipient,
+          amount: transaction.amount.toString(),
+          gasUsed: gasUsed || "0",
+          timestamp: Date.now(),
+        });
+
+        batch.push(transaction);
+      } catch (batchTxError) {
+        console.error("Transaction failed:", batchTxError);
+        continue;
+      }
+
+      //random delay
+      await new Promise((r) => setTimeout(r, Math.random() * 3000));
+    }
+    // Execute any remaining transactions in the batch after simulation ends
+    if (batch.length > 0) {
+      console.log("Executing final batch with remaining transactions...");
+      await executeBatch(batch, batchNumber);
+    }
+
+    console.log(`--- Simulation Complete ---`);
+
+    simulationLog.simulationEndTime = Date.now();
+    saveLog();
+  } catch (error) {
+    console.error("❌ FATAL ERROR:", error);
+    simulationLog.simulationEndTime = Date.now();
+    saveLog();
+  } finally {
+    clearInterval(countdownInterval);
+  }
+}
+
+VeChainUSDCSimulation()
+  .then(() => process.exit(0))
+  .catch((e) => {
+    console.error(e);
+    process.exit(1);
+  });

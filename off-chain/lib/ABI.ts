@@ -139,41 +139,24 @@ export const VECHAIN_BATCH_CONTRACT_ABI = [
   {
     inputs: [
       {
-        components: [
-          {
-            internalType: "address",
-            name: "sender",
-            type: "address",
-          },
-          {
-            internalType: "address",
-            name: "recipient",
-            type: "address",
-          },
-          {
-            internalType: "uint256",
-            name: "amount",
-            type: "uint256",
-          },
-          {
-            internalType: "uint8",
-            name: "v",
-            type: "uint8",
-          },
-          {
-            internalType: "bytes32",
-            name: "r",
-            type: "bytes32",
-          },
-          {
-            internalType: "bytes32",
-            name: "s",
-            type: "bytes32",
-          },
-        ],
-        internalType: "struct VeChainBatch.BatchTransaction[]",
-        name: "txs",
-        type: "tuple[]",
+        internalType: "address[]",
+        name: "senders",
+        type: "address[]",
+      },
+      {
+        internalType: "address[]",
+        name: "recipients",
+        type: "address[]",
+      },
+      {
+        internalType: "uint256[]",
+        name: "amounts",
+        type: "uint256[]",
+      },
+      {
+        internalType: "bytes[]",
+        name: "signatures",
+        type: "bytes[]",
       },
     ],
     name: "executeBatch",
@@ -213,7 +196,7 @@ export const VECHAIN_BATCH_CONTRACT_ABI = [
     stateMutability: "view",
     type: "function",
   },
-];
+] as const;
 
 export const VECHAIN_USDC_CONTRACT_ABI = [
   {
