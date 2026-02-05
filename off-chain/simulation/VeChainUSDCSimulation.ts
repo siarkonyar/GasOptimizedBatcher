@@ -280,6 +280,7 @@ async function executeBatch(batch: TransactionType[], batchNumber: number) {
     console.log(txReceipt);
     simulationLog.individualTransactions.push(...individualTransactionsBuffer);
     individualTransactionsBuffer = [];
+    debug(txReceipt?.meta.blockID as string, txReceipt?.meta.txID as string);
   } catch (error) {
     console.error(`❌ Batch #${batchNumber} execution failed:`, error);
   }
