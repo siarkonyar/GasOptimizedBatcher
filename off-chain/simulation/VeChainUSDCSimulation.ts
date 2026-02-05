@@ -197,7 +197,13 @@ async function debug(blockId: string, transaction: string) {
     "call" as TracerName,
   );
 
+  console.log("--------------------------------------");
+
+  console.log("Debug:");
+
   console.log(result);
+
+  console.log("--------------------------------------");
 }
 
 async function executeBatch(batch: TransactionType[], batchNumber: number) {
@@ -374,6 +380,11 @@ async function VeChainUSDCSimulation() {
         console.log(`⛽ Gas Used: ${gasUsed}`);
 
         console.log("------------------------------------------------");
+
+        debug(
+          txReceipt?.meta.blockID as string,
+          txReceipt?.meta.txID as string,
+        );
 
         //add the transaction to the log, if it fails it wont be added
         //add them to the buffer first. if the batch fails, we wont add these transactions to the data.
