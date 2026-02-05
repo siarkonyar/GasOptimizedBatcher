@@ -383,11 +383,6 @@ async function VeChainUSDCSimulation() {
 
         console.log("------------------------------------------------");
 
-        debug(
-          txReceipt?.meta.blockID as string,
-          txReceipt?.meta.txID as string,
-        );
-
         //add the transaction to the log, if it fails it wont be added
         //add them to the buffer first. if the batch fails, we wont add these transactions to the data.
         individualTransactionsBuffer.push({
