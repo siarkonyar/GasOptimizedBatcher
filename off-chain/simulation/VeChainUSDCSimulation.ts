@@ -14,7 +14,6 @@ import {
   Clause,
   Hex,
   HexUInt,
-  Keccak256,
   Transaction,
   Mnemonic,
   Secp256k1,
@@ -307,8 +306,6 @@ async function VeChainUSDCSimulation() {
       }
       const transaction = await generateRandomVeChainTransaction();
 
-      const recipient = transaction.recipient;
-      const txamount = transaction.amount;
       const individualWallet = {
         privateKey: transaction.senderPrivateKey,
         address: transaction.sender,
