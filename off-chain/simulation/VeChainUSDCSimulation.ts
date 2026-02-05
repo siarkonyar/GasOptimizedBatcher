@@ -153,12 +153,6 @@ async function executeBatch(batch: TransactionType[], batchNumber: number) {
     const recipients = [];
     const amounts = [];
 
-    const clause: Clause = Clause.callFunction(
-      Address.of(BATCHER_ADDRESS),
-      ABIContract.ofAbi(VECHAIN_BATCH_CONTRACT_ABI).getFunction("executeBatch"),
-      [batch],
-    );
-
     //every sender needs to sign the transaction to be included in the batch
     for (let i = 0; i < batch.length; i++) {
       const tx = batch[i];
@@ -173,13 +167,48 @@ async function executeBatch(batch: TransactionType[], batchNumber: number) {
         [tx.sender, tx.recipient, tx.amount, nonce],
       );
 
-      const messageHash = Blake2b256.of(Hex.of(packedData).bytes);
+      const messageHash = Blake2b256.of(packedData);
+
+      const signature = Secp256k1.sign(
+        messageHash.bytes,
+        HexUInt.of(tx.senderPrivateKey!).bytes,
+      ).toString();
 
       signatures.push(signature);
       senders.push(tx.sender);
       recipients.push(tx.recipient);
       amounts.push(tx.amount);
     }
+
+    const clause: Clause = Clause.callFunction(
+      Address.of(BATCHER_ADDRESS),
+      ABIContract.ofAbi(VECHAIN_BATCH_CONTRACT_ABI).getFunction("executeBatch"),
+      [batch],
+    );
+
+    const batchTransaction = {
+      clauses: [clause],
+    };
+
+    const batchGasEstimateGas = await thorSoloClient.gas.estimateGas(
+      batchTransaction.clauses,
+    );
+
+    const batchTxBody = await thorSoloClient.transactions.buildTransactionBody(
+      batchTransaction.clauses,
+      batchGasEstimateGas.totalGas,
+    );
+
+    const signedTransaction = Transaction.of(batchTxBody).sign(godPrivateKey);
+
+    const sendTransactionResult =
+      await thorSoloClient.transactions.sendTransaction(signedTransaction);
+
+    const txReceipt = await thorSoloClient.transactions.waitForTransaction(
+      sendTransactionResult.id,
+    );
+
+    console.log(txReceipt);
   } catch (error) {
     console.error(`❌ Batch #${batchNumber} execution failed:`, error);
   }
