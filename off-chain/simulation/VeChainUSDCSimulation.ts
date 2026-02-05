@@ -234,7 +234,7 @@ async function executeBatch(batch: TransactionType[], batchNumber: number) {
     const clause: Clause = Clause.callFunction(
       Address.of(BATCHER_ADDRESS),
       ABIContract.ofAbi(VECHAIN_BATCH_CONTRACT_ABI).getFunction("executeBatch"),
-      [batch],
+      [senders, recipients, amounts, signatures],
     );
 
     const batchTransaction = {
