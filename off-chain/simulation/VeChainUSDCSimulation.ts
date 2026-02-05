@@ -306,42 +306,45 @@ async function VeChainUSDCSimulation() {
         batch = []; // Clear the batch
         batchNumber++;
       }
-      const transaction = await generateRandomVeChainTransaction();
-
-      const individualWallet = {
-        privateKey: transaction.senderPrivateKey,
-        address: transaction.sender,
-      };
-      const clauses: Clause[] = [
-        Clause.callFunction(
-          Address.of(USDC_ADDRESS),
-          ABIContract.ofAbi(VECHAIN_USDC_CONTRACT_ABI).getFunction("transfer"),
-          [transaction.recipient, transaction.amount],
-        ),
-      ];
-
-      const gas = await thorSoloClient.gas.estimateGas(
-        clauses,
-        individualWallet.address,
-      );
-
-      const body: TransactionBody = {
-        chainTag,
-        blockRef: latestBlock !== null ? latestBlock.id.slice(0, 18) : "0x0",
-        expiration: 32,
-        clauses,
-        gasPriceCoef: 232, //TODO: make this 0 late
-        gas: gas.totalGas,
-        dependsOn: null,
-        nonce: Date.now(),
-      };
-
-      const signedTransaction = Transaction.of(body).sign(godPrivateKey);
-
-      const sendTransactionResult =
-        await thorSoloClient.transactions.sendTransaction(signedTransaction);
 
       try {
+        const transaction = await generateRandomVeChainTransaction();
+
+        const individualWallet = {
+          privateKey: transaction.senderPrivateKey,
+          address: transaction.sender,
+        };
+        const clauses: Clause[] = [
+          Clause.callFunction(
+            Address.of(USDC_ADDRESS),
+            ABIContract.ofAbi(VECHAIN_USDC_CONTRACT_ABI).getFunction(
+              "transfer",
+            ),
+            [transaction.recipient, transaction.amount],
+          ),
+        ];
+
+        const gas = await thorSoloClient.gas.estimateGas(
+          clauses,
+          individualWallet.address,
+        );
+
+        const body: TransactionBody = {
+          chainTag,
+          blockRef: latestBlock !== null ? latestBlock.id.slice(0, 18) : "0x0",
+          expiration: 32,
+          clauses,
+          gasPriceCoef: 232, //TODO: make this 0 late
+          gas: gas.totalGas,
+          dependsOn: null,
+          nonce: Date.now(),
+        };
+
+        const signedTransaction = Transaction.of(body).sign(godPrivateKey);
+
+        const sendTransactionResult =
+          await thorSoloClient.transactions.sendTransaction(signedTransaction);
+
         const txReceipt = await thorSoloClient.transactions.waitForTransaction(
           sendTransactionResult.id,
         );
