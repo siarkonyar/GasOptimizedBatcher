@@ -345,7 +345,7 @@ async function VeChainUSDCSimulation() {
             ABIContract.ofAbi(VECHAIN_USDC_CONTRACT_ABI).getFunction(
               "transfer",
             ),
-            [transaction.recipient, transaction.amount],
+            [transaction.recipient, transaction.amount / BigInt(1000000)],
           ),
         ];
 
