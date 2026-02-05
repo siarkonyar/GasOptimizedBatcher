@@ -59,9 +59,6 @@ const godPrivateKey = Mnemonic.toPrivateKey(godMnemonic.split(" "));
 const godPublicKey = Secp256k1.derivePublicKey(godPrivateKey);
 const godAddress = Address.ofPublicKey(godPublicKey).toString();
 
-const latestBlock = await thorSoloClient.blocks.getBestBlockCompressed();
-const chainTag = await thorSoloClient.nodes.getChaintag();
-
 const senderAccount: { privateKey: string; address: string } = {
   privateKey: Hex.of(godPrivateKey).toString(),
   address: godAddress,
@@ -135,6 +132,9 @@ async function approveSmartContractForAll(provider: VeChainProvider) {
   console.log("Approving smart contract for all...");
 
   console.log("This operation is performed only once.");
+
+  const latestBlock = await thorSoloClient.blocks.getBestBlockCompressed();
+  const chainTag = await thorSoloClient.nodes.getChaintag();
 
   try {
     const clauses: Clause[] = [
@@ -296,6 +296,8 @@ async function VeChainUSDCSimulation() {
   }, 1000);
 
   try {
+    const latestBlock = await thorSoloClient.blocks.getBestBlockCompressed();
+    const chainTag = await thorSoloClient.nodes.getChaintag();
     while (Date.now() < endTime) {
       // Check if it's time to execute a batch
       if (Date.now() >= nextBatchTime || batch.length >= BATCH_SIZE) {
