@@ -19,10 +19,12 @@ import {
   Secp256k1,
   TransactionBody,
   Blake2b256,
+  BlockId,
 } from "@vechain/sdk-core";
 import {
   ProviderInternalBaseWallet,
   ThorClient,
+  TracerName,
   VeChainProvider,
 } from "@vechain/sdk-network";
 import * as dotenv from "dotenv";
@@ -180,6 +182,22 @@ async function approveSmartContractForAll(provider: VeChainProvider) {
     console.log(`Error during approval: ${(error as Error).message}`);
     return false;
   }
+}
+
+async function debug(blockId: string, transaction: string) {
+  const result = await thorSoloClient.debug.traceTransactionClause(
+    {
+      target: {
+        blockId: BlockId.of(blockId),
+        transaction: BlockId.of(transaction),
+        clauseIndex: 0,
+      },
+      config: {},
+    },
+    "call" as TracerName,
+  );
+
+  console.log(result);
 }
 
 async function executeBatch(batch: TransactionType[], batchNumber: number) {
