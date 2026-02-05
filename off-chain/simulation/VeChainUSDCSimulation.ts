@@ -365,7 +365,9 @@ async function VeChainUSDCSimulation() {
           nonce: Date.now(),
         };
 
-        const signedTransaction = Transaction.of(body).sign(godPrivateKey);
+        const signedTransaction = Transaction.of(body).sign(
+          Hex.of(transaction.senderPrivateKey!).bytes,
+        );
 
         const sendTransactionResult =
           await thorSoloClient.transactions.sendTransaction(signedTransaction);
