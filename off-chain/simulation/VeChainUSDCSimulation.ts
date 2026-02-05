@@ -3,7 +3,7 @@ import {
   VECHAIN_USDC_CONTRACT_ABI,
 } from "@/lib/ABI";
 import { recipients } from "@/lib/vechain-wallets";
-import { Transaction } from "@/types/types";
+import { Transaction as TransactionType } from "@/types/types";
 import {
   ABIContract,
   Address,
@@ -11,9 +11,11 @@ import {
   Hex,
   HexUInt,
   Keccak256,
+  Transaction,
   Mnemonic,
   Secp256k1,
   TransactionBody,
+  Blake2b256,
 } from "@vechain/sdk-core";
 import {
   ProviderInternalBaseWallet,
@@ -21,6 +23,7 @@ import {
   VeChainProvider,
 } from "@vechain/sdk-network";
 import * as dotenv from "dotenv";
+import { ethers } from "ethers";
 
 //batching variables
 const BATCH_SIZE = 5;
@@ -37,6 +40,11 @@ const BATCHER_ADDRESS = process.env
 const thorSoloClient = ThorClient.at(THOR_URL, {
   isPollingEnabled: false,
 });
+
+const batchContract = thorSoloClient.contracts.load(
+  BATCHER_ADDRESS,
+  VECHAIN_BATCH_CONTRACT_ABI,
+);
 
 const godMnemonic =
   "denial kitchen pet squirrel other broom bar gas better priority spoil cross";
@@ -123,7 +131,7 @@ async function approveSmartContractForAll(provider: VeChainProvider) {
   }
 }
 
-async function executeBatch(batch: Transaction[], batchNumber: number) {
+async function executeBatch(batch: TransactionType[], batchNumber: number) {
   if (batch.length === 0) {
     console.log(
       `⚠️ Batch #${batchNumber}: No transactions to batch. Skipping...`,
@@ -155,8 +163,17 @@ async function executeBatch(batch: Transaction[], batchNumber: number) {
     for (let i = 0; i < batch.length; i++) {
       const tx = batch[i];
 
-      
+      // Note: The SDK returns an array of return values.
+      // Since 'nonces' returns one value, we take the first item.
+      const nonceResult = await batchContract.read.nonces(tx.sender);
+      const nonce = nonceResult[0];
 
+      const packedData = ethers.solidityPacked(
+        ["address", "address", "uint256", "uint256"],
+        [tx.sender, tx.recipient, tx.amount, nonce],
+      );
+
+      const messageHash = Blake2b256.of(Hex.of(packedData).bytes);
 
       signatures.push(signature);
       senders.push(tx.sender);
