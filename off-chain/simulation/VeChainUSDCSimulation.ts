@@ -261,6 +261,8 @@ async function executeBatch(batch: TransactionType[], batchNumber: number) {
     );
 
     console.log(txReceipt);
+    simulationLog.individualTransactions.push(...individualTransactionsBuffer);
+    individualTransactionsBuffer = [];
   } catch (error) {
     console.error(`❌ Batch #${batchNumber} execution failed:`, error);
   }
@@ -351,11 +353,36 @@ async function VeChainUSDCSimulation() {
         console.log(`⛽ Gas Used: ${gasUsed}`);
 
         console.log("------------------------------------------------");
+
+        //add the transaction to the log, if it fails it wont be added
+        //add them to the buffer first. if the batch fails, we wont add these transactions to the data.
+        individualTransactionsBuffer.push({
+          sender: transaction.sender,
+          recipient: transaction.recipient,
+          amount: transaction.amount.toString(),
+          gasUsed: gasUsed || "0",
+          timestamp: Date.now(),
+        });
+
+        batch.push(transaction);
       } catch (batchTxError) {
         console.error("Transaction failed:", batchTxError);
         continue;
       }
+
+      //random delay
+      await new Promise((r) => setTimeout(r, Math.random() * 3000));
     }
+    // Execute any remaining transactions in the batch after simulation ends
+    if (batch.length > 0) {
+      console.log("Executing final batch with remaining transactions...");
+      await executeBatch(batch, batchNumber);
+    }
+
+    console.log(`--- Simulation Complete ---`);
+
+    simulationLog.simulationEndTime = Date.now();
+    saveLog();
   } catch (error) {
     console.error("❌ FATAL ERROR:", error);
     simulationLog.simulationEndTime = Date.now();
