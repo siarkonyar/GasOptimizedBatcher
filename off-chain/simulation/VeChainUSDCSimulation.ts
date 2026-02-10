@@ -30,7 +30,7 @@ import {
 import * as dotenv from "dotenv";
 import * as fs from "fs";
 import * as path from "path";
-import { ethers } from "ethers";
+import { ethers, getBytes } from "ethers";
 import { generateRandomVeChainTransaction } from "@/lib/generateRandomUSDCTransaction";
 
 //batching variables
@@ -242,12 +242,16 @@ async function executeBatch(batch: TransactionType[], batchNumber: number) {
         [tx.sender, tx.recipient, tx.amount, nonce],
       );
 
-      const messageHash = Blake2b256.of(packedData);
+      const rawBytes = ethers.getBytes(packedData);
+
+      const messageHash = Blake2b256.of(rawBytes);
 
       const signature = Secp256k1.sign(
         messageHash.bytes,
-        HexUInt.of(tx.senderPrivateKey!).bytes,
+        ethers.getBytes(tx.senderPrivateKey!),
       );
+
+      signature[64] += 27;
 
       signatures.push(Hex.of(signature).toString());
       senders.push(tx.sender);
