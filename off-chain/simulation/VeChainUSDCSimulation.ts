@@ -79,7 +79,7 @@ function saveLog() {
   const logFileName = `simulation-log-${timestamp}.json`;
   const logPath = path.join(
     process.cwd(),
-    "simulation/EthereumSimulationLogs",
+    "simulation/VeChainSimulationLogs",
     logFileName,
   );
 
