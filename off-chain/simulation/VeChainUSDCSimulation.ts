@@ -13,7 +13,6 @@ import {
   Address,
   Clause,
   Hex,
-  HexUInt,
   Transaction,
   Mnemonic,
   Secp256k1,
@@ -22,15 +21,13 @@ import {
   BlockId,
 } from "@vechain/sdk-core";
 import {
-  ProviderInternalBaseWallet,
   ThorClient,
   TracerName,
-  VeChainProvider,
 } from "@vechain/sdk-network";
 import * as dotenv from "dotenv";
 import * as fs from "fs";
 import * as path from "path";
-import { ethers, getBytes } from "ethers";
+import { ethers } from "ethers";
 import { generateRandomVeChainTransaction } from "@/lib/generateRandomUSDCTransaction";
 
 //batching variables
@@ -58,29 +55,6 @@ const batchContract = thorSoloClient.contracts.load(
 const godMnemonic =
   "denial kitchen pet squirrel other broom bar gas better priority spoil cross";
 const godPrivateKey = Mnemonic.toPrivateKey(godMnemonic.split(" "));
-const godPublicKey = Secp256k1.derivePublicKey(godPrivateKey);
-const godAddress = Address.ofPublicKey(godPublicKey).toString();
-
-const senderAccount: { privateKey: string; address: string } = {
-  privateKey: Hex.of(godPrivateKey).toString(),
-  address: godAddress,
-};
-
-const provider = new VeChainProvider(
-  // Thor client used by the provider
-  thorSoloClient,
-
-  // Internal wallet used by the provider (needed to call the getSigner() method)
-  new ProviderInternalBaseWallet([
-    {
-      privateKey: HexUInt.of(senderAccount.privateKey).bytes,
-      address: senderAccount.address,
-    },
-  ]),
-
-  // Disable fee delegation (BY DEFAULT IT IS DISABLED)
-  false,
-);
 
 const simulationLog: SimulationLog = {
   simulationStartTime: Date.now(),
@@ -367,7 +341,7 @@ async function VeChainUSDCSimulation() {
           blockRef: latestBlock !== null ? latestBlock.id.slice(0, 18) : "0x0",
           expiration: 32,
           clauses,
-          gasPriceCoef: 232, //TODO: make this 0 late
+          gasPriceCoef: 0,
           gas: gas.totalGas,
           dependsOn: null,
           nonce: Date.now(),
@@ -397,7 +371,7 @@ async function VeChainUSDCSimulation() {
           sender: transaction.sender,
           recipient: transaction.recipient,
           amount: transaction.amount.toString(),
-          gasUsed: "0",
+          gasUsed: gasUsed,
           timestamp: Date.now(),
         });
 
