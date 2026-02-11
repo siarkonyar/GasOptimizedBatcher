@@ -1,4 +1,4 @@
-import { recipients, senders } from "@/lib/USDCWallets";
+import { recipients, senders } from "@/lib/ethereum-wallets";
 import { getRandomAmount } from "@/lib/randomAmounts";
 import { Transaction } from "@/types/types";
 import {

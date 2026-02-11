@@ -21,10 +21,9 @@ import {
 } from "@vechain/sdk-core";
 import { ThorClient } from "@vechain/sdk-network";
 import * as dotenv from "dotenv";
-import * as fs from "fs";
-import * as path from "path";
 import { ethers } from "ethers";
 import { generateRandomVeChainTransaction } from "@/lib/generateRandomUSDCTransaction";
+import { saveLog } from "@/lib/saveLog";
 
 //batching variables
 const BATCH_SIZE = 5;
@@ -69,36 +68,6 @@ const simulationLog: SimulationLog = {
 };
 
 let individualTransactionsBuffer: IndividualTxLog[] = [];
-
-function saveLog() {
-  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-  const logFileName = `simulation-log-${timestamp}.json`;
-  const logPath = path.join(
-    process.cwd(),
-    "simulation/VeChainSimulationLogs",
-    logFileName,
-  );
-
-  // Calculate total gas for individual and batched transactions
-  const totalIndividualGas = simulationLog.individualTransactions.reduce(
-    (sum, tx) => sum + BigInt(tx.gasUsed),
-    BigInt(0),
-  );
-  const totalBatchGas = simulationLog.batches.reduce(
-    (sum, batch) => sum + BigInt(batch.gasUsed),
-    BigInt(0),
-  );
-
-  simulationLog.summary = {
-    totalIndividualTransactions: simulationLog.individualTransactions.length,
-    totalBatches: simulationLog.batches.length,
-    totalIndividualGasUsed: totalIndividualGas.toString(),
-    totalBatchGasUsed: totalBatchGas.toString(),
-  };
-
-  fs.writeFileSync(logPath, JSON.stringify(simulationLog, null, 2));
-  console.log(`\n📝 Log saved to: ${logFileName}`);
-}
 
 async function approveSmartContractForAll() {
   console.log("Approving smart contract for all...");
@@ -385,11 +354,11 @@ async function VeChainUSDCSimulation() {
     console.log(`--- Simulation Complete ---`);
 
     simulationLog.simulationEndTime = Date.now();
-    saveLog();
+    saveLog(simulationLog, "simulation/VeChainSimulationLogs");
   } catch (error) {
     console.error("❌ FATAL ERROR:", error);
     simulationLog.simulationEndTime = Date.now();
-    saveLog();
+    saveLog(simulationLog, "simulation/VeChainSimulationLogs");
   } finally {
     clearInterval(countdownInterval);
   }
