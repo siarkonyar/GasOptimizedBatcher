@@ -18,9 +18,8 @@ import {
   Secp256k1,
   TransactionBody,
   Blake2b256,
-  BlockId,
 } from "@vechain/sdk-core";
-import { ThorClient, TracerName } from "@vechain/sdk-network";
+import { ThorClient } from "@vechain/sdk-network";
 import * as dotenv from "dotenv";
 import * as fs from "fs";
 import * as path from "path";
@@ -29,9 +28,9 @@ import { generateRandomVeChainTransaction } from "@/lib/generateRandomUSDCTransa
 
 //batching variables
 const BATCH_SIZE = 5;
-const BATCH_INTERVAL_MIN = 1;
+const BATCH_INTERVAL_MIN = 0.2;
 const BATCH_INTERVAL_MS = BATCH_INTERVAL_MIN * 60 * 1000;
-const SIMULATION_DURATION = 5 * 60 * 1000;
+const SIMULATION_DURATION = 1 * 60 * 1000;
 
 dotenv.config();
 
@@ -237,7 +236,22 @@ async function executeBatch(batch: TransactionType[], batchNumber: number) {
       sendTransactionResult.id,
     );
 
+    const batchGasUsed = String(txReceipt?.gasUsed);
+
     console.log(txReceipt);
+
+    simulationLog.batches.push({
+      batchNumber,
+      gasUsed: batchGasUsed,
+      timestamp: Date.now(),
+      transactionCount: batch.length,
+      transactions: batch.map((tx) => ({
+        sender: tx.sender,
+        recipient: tx.recipient,
+        amount: tx.amount.toString(),
+      })),
+    });
+
     simulationLog.individualTransactions.push(...individualTransactionsBuffer);
     individualTransactionsBuffer = [];
   } catch (error) {
@@ -248,7 +262,7 @@ async function executeBatch(batch: TransactionType[], batchNumber: number) {
 async function VeChainUSDCSimulation() {
   console.log("Starting Background Worker...");
 
-  await approveSmartContractForAll();
+  //await approveSmartContractForAll();
 
   console.log(
     `⏱️ Simulation Duration: ${SIMULATION_DURATION / 1000 / 60} minutes`,
