@@ -1,5 +1,5 @@
 import { generateRandomTransaction } from "../lib/generateRandomUSDCTransaction";
-import { adminWallet, senders } from "../lib/ethereum-wallets";
+import { adminWallet } from "../lib/ethereum-wallets";
 import { ethers } from "ethers";
 import type {
   IndividualTxLog,
@@ -53,49 +53,6 @@ const simulationLog: SimulationLog = {
 
 let individualTransactionsBuffer: IndividualTxLog[] = [];
 
-async function approveSmartContractForAll(provider: ethers.JsonRpcProvider) {
-  console.log("Approving smart contract for all...");
-
-  console.log("This operation is performed only once.");
-
-  try {
-    const abi = [
-      "function approve(address spender, uint256 amount) public returns (bool)",
-    ];
-
-    const approveList = [adminWallet, ...senders];
-
-    for (const sender of approveList) {
-      try {
-        //connect to wallet
-        const wallet = new ethers.Wallet(sender.privateKey, provider);
-
-        //connect to smart contract
-        const usdcContract = new ethers.Contract(USDC_ADDRESS, abi, wallet);
-
-        // Send the approval transaction
-        const tx = await usdcContract.approve(
-          BATCH_CONTRACT_ADDRESS,
-          ethers.MaxUint256,
-        );
-
-        await tx.wait();
-      } catch (error) {
-        const errorMsg = `Failed for ${sender.name}: ${
-          (error as Error).message
-        }`;
-        console.error(errorMsg);
-        return false;
-      }
-    }
-
-    console.log("✅ All wallets approved the smart contract.");
-    console.log("------------------------------------------------");
-  } catch (error) {
-    console.log(`Error during approval: ${(error as Error).message}`);
-    return false;
-  }
-}
 
 async function executeBatch(
   batch: Transaction[],
@@ -203,8 +160,6 @@ async function executeBatch(
 
 async function USDCSimulation() {
   const provider = new ethers.JsonRpcProvider(HARDHAT_RPC_URL);
-
-  await approveSmartContractForAll(provider);
 
   console.log("Starting Background Worker...");
   console.log(
