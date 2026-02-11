@@ -8,8 +8,6 @@ import type {
 } from "../types/types";
 import { ETH_BATCH_CONTRACT_ABI } from "../lib/ABI";
 import * as dotenv from "dotenv";
-import * as fs from "fs";
-import * as path from "path";
 import { saveLog } from "@/lib/saveLog";
 
 dotenv.config();

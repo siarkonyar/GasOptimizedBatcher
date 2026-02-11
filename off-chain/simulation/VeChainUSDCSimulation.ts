@@ -2,7 +2,6 @@ import {
   VECHAIN_BATCH_CONTRACT_ABI,
   VECHAIN_USDC_CONTRACT_ABI,
 } from "@/lib/ABI";
-import { recipients } from "@/lib/vechain-wallets";
 import {
   IndividualTxLog,
   SimulationLog,
@@ -68,61 +67,6 @@ const simulationLog: SimulationLog = {
 };
 
 let individualTransactionsBuffer: IndividualTxLog[] = [];
-
-async function approveSmartContractForAll() {
-  console.log("Approving smart contract for all...");
-
-  console.log("This operation is performed only once.");
-
-  const latestBlock = await thorSoloClient.blocks.getBestBlockCompressed();
-  const chainTag = await thorSoloClient.nodes.getChaintag();
-
-  try {
-    for (let i = 0; i < recipients.length; i++) {
-      console.log(`approving smart contract for wallet ${i + 1}`);
-      const clauses = [
-        thorSoloClient.contracts
-          .load(USDC_ADDRESS, VECHAIN_USDC_CONTRACT_ABI)
-          .clause.approve(BATCHER_ADDRESS, ethers.MaxUint256).clause,
-      ];
-
-      const gas = await thorSoloClient.gas.estimateGas(
-        clauses,
-        recipients[i].address,
-      );
-
-      const body: TransactionBody = {
-        chainTag,
-        blockRef: latestBlock !== null ? latestBlock.id.slice(0, 18) : "0x0",
-        expiration: 256,
-        clauses,
-        gasPriceCoef: 232,
-        gas: gas.totalGas,
-        dependsOn: null,
-        nonce: Date.now(),
-      };
-
-      const signedTransaction = Transaction.of(body).sign(
-        ethers.getBytes(recipients[i].privateKey),
-      );
-
-      const sendTransactionResult =
-        await thorSoloClient.transactions.sendTransaction(signedTransaction);
-
-      const receipt = await thorSoloClient.transactions.waitForTransaction(
-        sendTransactionResult.id,
-      );
-
-      console.log(receipt);
-    }
-
-    console.log("✅ All wallets approved the smart contract.");
-    console.log("------------------------------------------------");
-  } catch (error) {
-    console.log(`Error during approval: ${(error as Error).message}`);
-    return false;
-  }
-}
 
 async function executeBatch(batch: TransactionType[], batchNumber: number) {
   if (batch.length === 0) {
@@ -230,8 +174,6 @@ async function executeBatch(batch: TransactionType[], batchNumber: number) {
 
 async function VeChainUSDCSimulation() {
   console.log("Starting Background Worker...");
-
-  //await approveSmartContractForAll();
 
   console.log(
     `⏱️ Simulation Duration: ${SIMULATION_DURATION / 1000 / 60} minutes`,
