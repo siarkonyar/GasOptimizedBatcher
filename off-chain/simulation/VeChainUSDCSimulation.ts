@@ -20,10 +20,7 @@ import {
   Blake2b256,
   BlockId,
 } from "@vechain/sdk-core";
-import {
-  ThorClient,
-  TracerName,
-} from "@vechain/sdk-network";
+import { ThorClient, TracerName } from "@vechain/sdk-network";
 import * as dotenv from "dotenv";
 import * as fs from "fs";
 import * as path from "path";
@@ -159,28 +156,6 @@ async function approveSmartContractForAll() {
   }
 }
 
-async function debug(blockId: string, transaction: string) {
-  const result = await thorSoloClient.debug.traceTransactionClause(
-    {
-      target: {
-        blockId: BlockId.of(blockId),
-        transaction: BlockId.of(transaction),
-        clauseIndex: 0,
-      },
-      config: {},
-    },
-    "call" as TracerName,
-  );
-
-  console.log("--------------------------------------");
-
-  console.log("Debug:");
-
-  console.log(result);
-
-  console.log("--------------------------------------");
-}
-
 async function executeBatch(batch: TransactionType[], batchNumber: number) {
   if (batch.length === 0) {
     console.log(
@@ -265,7 +240,6 @@ async function executeBatch(batch: TransactionType[], batchNumber: number) {
     console.log(txReceipt);
     simulationLog.individualTransactions.push(...individualTransactionsBuffer);
     individualTransactionsBuffer = [];
-    debug(txReceipt?.meta.blockID as string, txReceipt?.meta.txID as string);
   } catch (error) {
     console.error(`❌ Batch #${batchNumber} execution failed:`, error);
   }
@@ -360,8 +334,12 @@ async function VeChainUSDCSimulation() {
 
         const gasUsed = String(txReceipt!.gasUsed);
 
-        console.log(`✅ Individual Tx: ${txReceipt?.reverted}`);
-        console.log(`⛽ Gas Used: ${gasUsed}`);
+        console.log("------------------------------------------------");
+
+        console.log(
+          `\n✅ Individual Tx executed reverted: ${txReceipt?.reverted}`,
+        );
+        console.log(`\n⛽ Gas Used: ${gasUsed}`);
 
         console.log("------------------------------------------------");
 
