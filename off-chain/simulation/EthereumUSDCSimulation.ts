@@ -214,9 +214,7 @@ async function executeBatch(
 
     simulationLog.batches.push({
       batchNumber,
-      txHash: batchedTx.hash,
-      gasUsed: batchGasUsed || "0",
-      blockNumber: batchedTxReceipt?.blockNumber || null,
+      gasUsed: batchGasUsed,
       timestamp: Date.now(),
       transactionCount: batch.length,
       transactions: batch.map((tx) => ({
@@ -310,12 +308,10 @@ async function USDCSimulation() {
         //add the transaction to the log, if it fails it wont be added
         //add them to the buffer first. if the batch fails, we wont add these transactions to the data.
         individualTransactionsBuffer.push({
-          txHash: tx.hash,
           sender: transaction.sender,
           recipient: transaction.recipient,
           amount: transaction.amount.toString(),
-          gasUsed: gasUsed || "0",
-          blockNumber: txReceipt?.blockNumber || null,
+          gasUsed: gasUsed,
           timestamp: Date.now(),
         });
 
