@@ -30,7 +30,7 @@ import {
 import * as dotenv from "dotenv";
 import * as fs from "fs";
 import * as path from "path";
-import { ethers } from "ethers";
+import { ethers, getBytes } from "ethers";
 import { generateRandomVeChainTransaction } from "@/lib/generateRandomUSDCTransaction";
 
 //batching variables
@@ -130,7 +130,7 @@ function saveLog() {
   console.log(`\n📝 Log saved to: ${logFileName}`);
 }
 
-async function approveSmartContractForAll(provider: VeChainProvider) {
+async function approveSmartContractForAll() {
   console.log("Approving smart contract for all...");
 
   console.log("This operation is performed only once.");
@@ -139,42 +139,43 @@ async function approveSmartContractForAll(provider: VeChainProvider) {
   const chainTag = await thorSoloClient.nodes.getChaintag();
 
   try {
-    const clauses: Clause[] = [
-      ...recipients.map((r) =>
-        Clause.callFunction(
-          Address.of(USDC_ADDRESS),
-          ABIContract.ofAbi(VECHAIN_USDC_CONTRACT_ABI).getFunction("approve"),
-          [r.address, 100000],
-        ),
-      ),
-    ];
+    for (let i = 0; i < recipients.length; i++) {
+      console.log(`approving smart contract for wallet ${i + 1}`);
+      const clauses = [
+        thorSoloClient.contracts
+          .load(USDC_ADDRESS, VECHAIN_USDC_CONTRACT_ABI)
+          .clause.approve(BATCHER_ADDRESS, ethers.MaxUint256).clause,
+      ];
 
-    const gas = await thorSoloClient.gas.estimateGas(
-      clauses,
-      senderAccount.address,
-    );
+      const gas = await thorSoloClient.gas.estimateGas(
+        clauses,
+        recipients[i].address,
+      );
 
-    const body: TransactionBody = {
-      chainTag,
-      blockRef: latestBlock !== null ? latestBlock.id.slice(0, 18) : "0x0",
-      expiration: 32,
-      clauses,
-      gasPriceCoef: 232,
-      gas: gas.totalGas,
-      dependsOn: null,
-      nonce: Date.now(),
-    };
+      const body: TransactionBody = {
+        chainTag,
+        blockRef: latestBlock !== null ? latestBlock.id.slice(0, 18) : "0x0",
+        expiration: 256,
+        clauses,
+        gasPriceCoef: 232,
+        gas: gas.totalGas,
+        dependsOn: null,
+        nonce: Date.now(),
+      };
 
-    const signedTransaction = Transaction.of(body).sign(godPrivateKey);
+      const signedTransaction = Transaction.of(body).sign(
+        ethers.getBytes(recipients[i].privateKey),
+      );
 
-    const sendTransactionResult =
-      await thorSoloClient.transactions.sendTransaction(signedTransaction);
+      const sendTransactionResult =
+        await thorSoloClient.transactions.sendTransaction(signedTransaction);
 
-    const txReceipt = await thorSoloClient.transactions.waitForTransaction(
-      sendTransactionResult.id,
-    );
+      const receipt = await thorSoloClient.transactions.waitForTransaction(
+        sendTransactionResult.id,
+      );
 
-    console.log(txReceipt);
+      console.log(receipt);
+    }
 
     console.log("✅ All wallets approved the smart contract.");
     console.log("------------------------------------------------");
@@ -242,12 +243,16 @@ async function executeBatch(batch: TransactionType[], batchNumber: number) {
         [tx.sender, tx.recipient, tx.amount, nonce],
       );
 
-      const messageHash = Blake2b256.of(packedData);
+      const rawBytes = ethers.getBytes(packedData);
+
+      const messageHash = Blake2b256.of(rawBytes);
 
       const signature = Secp256k1.sign(
         messageHash.bytes,
-        HexUInt.of(tx.senderPrivateKey!).bytes,
+        ethers.getBytes(tx.senderPrivateKey!),
       );
+
+      signature[64] += 27;
 
       signatures.push(Hex.of(signature).toString());
       senders.push(tx.sender);
@@ -294,6 +299,9 @@ async function executeBatch(batch: TransactionType[], batchNumber: number) {
 
 async function VeChainUSDCSimulation() {
   console.log("Starting Background Worker...");
+
+  await approveSmartContractForAll();
+
   console.log(
     `⏱️ Simulation Duration: ${SIMULATION_DURATION / 1000 / 60} minutes`,
   );
@@ -345,7 +353,7 @@ async function VeChainUSDCSimulation() {
             ABIContract.ofAbi(VECHAIN_USDC_CONTRACT_ABI).getFunction(
               "transfer",
             ),
-            [transaction.recipient, transaction.amount],
+            [transaction.recipient, transaction.amount / BigInt(1000000)],
           ),
         ];
 
@@ -365,7 +373,9 @@ async function VeChainUSDCSimulation() {
           nonce: Date.now(),
         };
 
-        const signedTransaction = Transaction.of(body).sign(godPrivateKey);
+        const signedTransaction = Transaction.of(body).sign(
+          Hex.of(transaction.senderPrivateKey!).bytes,
+        );
 
         const sendTransactionResult =
           await thorSoloClient.transactions.sendTransaction(signedTransaction);
@@ -381,18 +391,13 @@ async function VeChainUSDCSimulation() {
 
         console.log("------------------------------------------------");
 
-        debug(
-          txReceipt?.meta.blockID as string,
-          txReceipt?.meta.txID as string,
-        );
-
         //add the transaction to the log, if it fails it wont be added
         //add them to the buffer first. if the batch fails, we wont add these transactions to the data.
         individualTransactionsBuffer.push({
           sender: transaction.sender,
           recipient: transaction.recipient,
           amount: transaction.amount.toString(),
-          gasUsed: gasUsed || "0",
+          gasUsed: "0",
           timestamp: Date.now(),
         });
 
