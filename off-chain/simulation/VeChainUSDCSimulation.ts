@@ -18,23 +18,18 @@ import {
   Secp256k1,
   TransactionBody,
   Blake2b256,
-  BlockId,
 } from "@vechain/sdk-core";
-import {
-  ThorClient,
-  TracerName,
-} from "@vechain/sdk-network";
+import { ThorClient } from "@vechain/sdk-network";
 import * as dotenv from "dotenv";
-import * as fs from "fs";
-import * as path from "path";
 import { ethers } from "ethers";
 import { generateRandomVeChainTransaction } from "@/lib/generateRandomUSDCTransaction";
+import { saveLog } from "@/lib/saveLog";
 
 //batching variables
 const BATCH_SIZE = 5;
-const BATCH_INTERVAL_MIN = 1;
+const BATCH_INTERVAL_MIN = 0.2;
 const BATCH_INTERVAL_MS = BATCH_INTERVAL_MIN * 60 * 1000;
-const SIMULATION_DURATION = 5 * 60 * 1000;
+const SIMULATION_DURATION = 1 * 60 * 1000;
 
 dotenv.config();
 
@@ -73,36 +68,6 @@ const simulationLog: SimulationLog = {
 };
 
 let individualTransactionsBuffer: IndividualTxLog[] = [];
-
-function saveLog() {
-  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-  const logFileName = `simulation-log-${timestamp}.json`;
-  const logPath = path.join(
-    process.cwd(),
-    "simulation/EthereumSimulationLogs",
-    logFileName,
-  );
-
-  // Calculate total gas for individual and batched transactions
-  const totalIndividualGas = simulationLog.individualTransactions.reduce(
-    (sum, tx) => sum + BigInt(tx.gasUsed),
-    BigInt(0),
-  );
-  const totalBatchGas = simulationLog.batches.reduce(
-    (sum, batch) => sum + BigInt(batch.gasUsed),
-    BigInt(0),
-  );
-
-  simulationLog.summary = {
-    totalIndividualTransactions: simulationLog.individualTransactions.length,
-    totalBatches: simulationLog.batches.length,
-    totalIndividualGasUsed: totalIndividualGas.toString(),
-    totalBatchGasUsed: totalBatchGas.toString(),
-  };
-
-  fs.writeFileSync(logPath, JSON.stringify(simulationLog, null, 2));
-  console.log(`\n📝 Log saved to: ${logFileName}`);
-}
 
 async function approveSmartContractForAll() {
   console.log("Approving smart contract for all...");
@@ -157,28 +122,6 @@ async function approveSmartContractForAll() {
     console.log(`Error during approval: ${(error as Error).message}`);
     return false;
   }
-}
-
-async function debug(blockId: string, transaction: string) {
-  const result = await thorSoloClient.debug.traceTransactionClause(
-    {
-      target: {
-        blockId: BlockId.of(blockId),
-        transaction: BlockId.of(transaction),
-        clauseIndex: 0,
-      },
-      config: {},
-    },
-    "call" as TracerName,
-  );
-
-  console.log("--------------------------------------");
-
-  console.log("Debug:");
-
-  console.log(result);
-
-  console.log("--------------------------------------");
 }
 
 async function executeBatch(batch: TransactionType[], batchNumber: number) {
@@ -262,10 +205,24 @@ async function executeBatch(batch: TransactionType[], batchNumber: number) {
       sendTransactionResult.id,
     );
 
+    const batchGasUsed = String(txReceipt?.gasUsed);
+
     console.log(txReceipt);
+
+    simulationLog.batches.push({
+      batchNumber,
+      gasUsed: batchGasUsed,
+      timestamp: Date.now(),
+      transactionCount: batch.length,
+      transactions: batch.map((tx) => ({
+        sender: tx.sender,
+        recipient: tx.recipient,
+        amount: tx.amount.toString(),
+      })),
+    });
+
     simulationLog.individualTransactions.push(...individualTransactionsBuffer);
     individualTransactionsBuffer = [];
-    debug(txReceipt?.meta.blockID as string, txReceipt?.meta.txID as string);
   } catch (error) {
     console.error(`❌ Batch #${batchNumber} execution failed:`, error);
   }
@@ -274,7 +231,7 @@ async function executeBatch(batch: TransactionType[], batchNumber: number) {
 async function VeChainUSDCSimulation() {
   console.log("Starting Background Worker...");
 
-  await approveSmartContractForAll();
+  //await approveSmartContractForAll();
 
   console.log(
     `⏱️ Simulation Duration: ${SIMULATION_DURATION / 1000 / 60} minutes`,
@@ -360,8 +317,12 @@ async function VeChainUSDCSimulation() {
 
         const gasUsed = String(txReceipt!.gasUsed);
 
-        console.log(`✅ Individual Tx: ${txReceipt?.reverted}`);
-        console.log(`⛽ Gas Used: ${gasUsed}`);
+        console.log("------------------------------------------------");
+
+        console.log(
+          `\n✅ Individual Tx executed reverted: ${txReceipt?.reverted}`,
+        );
+        console.log(`\n⛽ Gas Used: ${gasUsed}`);
 
         console.log("------------------------------------------------");
 
@@ -393,11 +354,11 @@ async function VeChainUSDCSimulation() {
     console.log(`--- Simulation Complete ---`);
 
     simulationLog.simulationEndTime = Date.now();
-    saveLog();
+    saveLog(simulationLog, "simulation/VeChainSimulationLogs");
   } catch (error) {
     console.error("❌ FATAL ERROR:", error);
     simulationLog.simulationEndTime = Date.now();
-    saveLog();
+    saveLog(simulationLog, "simulation/VeChainSimulationLogs");
   } finally {
     clearInterval(countdownInterval);
   }

@@ -1,5 +1,5 @@
 import { generateRandomTransaction } from "../lib/generateRandomUSDCTransaction";
-import { adminWallet, senders } from "../lib/USDCWallets";
+import { adminWallet, senders } from "../lib/ethereum-wallets";
 import { ethers } from "ethers";
 import type {
   IndividualTxLog,
@@ -10,6 +10,7 @@ import { ETH_BATCH_CONTRACT_ABI } from "../lib/ABI";
 import * as dotenv from "dotenv";
 import * as fs from "fs";
 import * as path from "path";
+import { saveLog } from "@/lib/saveLog";
 
 dotenv.config();
 
@@ -98,36 +99,6 @@ async function approveSmartContractForAll(provider: ethers.JsonRpcProvider) {
   }
 }
 
-function saveLog() {
-  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-  const logFileName = `simulation-log-${timestamp}.json`;
-  const logPath = path.join(
-    process.cwd(),
-    "simulation/EthereumSimulationLogs",
-    logFileName,
-  );
-
-  // Calculate total gas for individual and batched transactions
-  const totalIndividualGas = simulationLog.individualTransactions.reduce(
-    (sum, tx) => sum + BigInt(tx.gasUsed),
-    BigInt(0),
-  );
-  const totalBatchGas = simulationLog.batches.reduce(
-    (sum, batch) => sum + BigInt(batch.gasUsed),
-    BigInt(0),
-  );
-
-  simulationLog.summary = {
-    totalIndividualTransactions: simulationLog.individualTransactions.length,
-    totalBatches: simulationLog.batches.length,
-    totalIndividualGasUsed: totalIndividualGas.toString(),
-    totalBatchGasUsed: totalBatchGas.toString(),
-  };
-
-  fs.writeFileSync(logPath, JSON.stringify(simulationLog, null, 2));
-  console.log(`\n📝 Log saved to: ${logFileName}`);
-}
-
 async function executeBatch(
   batch: Transaction[],
   batcherWallet: ethers.Wallet,
@@ -214,9 +185,7 @@ async function executeBatch(
 
     simulationLog.batches.push({
       batchNumber,
-      txHash: batchedTx.hash,
-      gasUsed: batchGasUsed || "0",
-      blockNumber: batchedTxReceipt?.blockNumber || null,
+      gasUsed: batchGasUsed,
       timestamp: Date.now(),
       transactionCount: batch.length,
       transactions: batch.map((tx) => ({
@@ -310,12 +279,10 @@ async function USDCSimulation() {
         //add the transaction to the log, if it fails it wont be added
         //add them to the buffer first. if the batch fails, we wont add these transactions to the data.
         individualTransactionsBuffer.push({
-          txHash: tx.hash,
           sender: transaction.sender,
           recipient: transaction.recipient,
           amount: transaction.amount.toString(),
-          gasUsed: gasUsed || "0",
-          blockNumber: txReceipt?.blockNumber || null,
+          gasUsed: gasUsed,
           timestamp: Date.now(),
         });
 
@@ -337,11 +304,11 @@ async function USDCSimulation() {
     console.log(`--- Simulation Complete ---`);
 
     simulationLog.simulationEndTime = Date.now();
-    saveLog();
+    saveLog(simulationLog, "simulation/EthereumSimulationLogs");
   } catch (error) {
     console.error("❌ FATAL ERROR:", error);
     simulationLog.simulationEndTime = Date.now();
-    saveLog();
+    saveLog(simulationLog, "simulation/EthereumSimulationLogs");
   } finally {
     clearInterval(countdownInterval);
   }

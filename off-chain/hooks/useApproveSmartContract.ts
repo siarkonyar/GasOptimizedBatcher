@@ -1,7 +1,7 @@
 "use client";
 
 import { ethers } from "ethers";
-import { adminWallet, senders } from "../lib/USDCWallets";
+import { adminWallet, senders } from "../lib/ethereum-wallets";
 import { config } from "@/config";
 import { useChainId } from "wagmi";
 import { useState } from "react";

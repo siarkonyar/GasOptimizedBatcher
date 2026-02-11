@@ -6,7 +6,7 @@ import { config } from "@/config";
 import { ETH_BATCH_CONTRACT_ABI } from "../lib/ABI";
 import { Transaction } from "@/types/types";
 import { ethers } from "ethers";
-import { adminWallet } from "@/lib/USDCWallets";
+import { adminWallet } from "@/lib/ethereum-wallets";
 
 export default function useExecuteETHBatchContract() {
   const chainId = useChainId();
