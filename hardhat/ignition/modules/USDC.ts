@@ -28,31 +28,46 @@ async function main(): Promise<void> {
 }
 
 function saveAddressToEnv(value: string) {
-  const envFilePath = path.join(__dirname, "../../.env");
-  let envContent = "";
+  const envConfigs = [
+    {
+      path: path.join(__dirname, "../../.env"), // hardhat/.env
+      key: "USDC_ADDRESS",
+      asString: false,
+    },
+    {
+      path: path.join(__dirname, "../../../off-chain/.env"), // off-chain/.env
+      key: "NEXT_PUBLIC_VECHAIN_USDC_ADDRESS",
+      asString: true,
+    },
+  ];
 
-  if (fs.existsSync(envFilePath)) {
-    envContent = fs.readFileSync(envFilePath, "utf8");
-  }
+  envConfigs.forEach(({ path: envFilePath, key, asString }) => {
+    let envContent = "";
 
-  // check if the key already exists
-  const regex = new RegExp(`^USDC_ADDRESS=.*`, "m");
+    if (fs.existsSync(envFilePath)) {
+      envContent = fs.readFileSync(envFilePath, "utf8");
+    }
 
-  if (regex.test(envContent)) {
-    // replace existing key
-    envContent = envContent.replace(regex, `USDC_ADDRESS=${value}`);
-    console.log(`Updated USDC_ADDRESS in .env`);
-  } else {
-    // new key
-    const prefix =
-      envContent.length > 0 && !envContent.endsWith("\n") ? "\n" : "";
-    envContent += `${prefix}USDC_ADDRESS=${value}\n`;
-    console.log(`Added USDC_ADDRESS to .env`);
-  }
+    const formattedValue = asString ? `"${value}"` : value;
 
-  fs.writeFileSync(envFilePath, envContent);
+    // check if the key already exists
+    const regex = new RegExp(`^${key}=.*`, "m");
+
+    if (regex.test(envContent)) {
+      // replace existing key
+      envContent = envContent.replace(regex, `${key}=${formattedValue}`);
+      console.log(`Updated ${key} in ${envFilePath}`);
+    } else {
+      // new key
+      const prefix =
+        envContent.length > 0 && !envContent.endsWith("\n") ? "\n" : "";
+      envContent += `${prefix}${key}=${formattedValue}\n`;
+      console.log(`Added ${key} to ${envFilePath}`);
+    }
+
+    fs.writeFileSync(envFilePath, envContent);
+  });
 }
-
 // We recommend this pattern to be able to use async/await everywhere
 // and properly handle errors.
 main().catch((error) => {
