@@ -30,8 +30,10 @@ const USDC_ABI = [
 ] as const;
 
 //batching variables
-const BATCH_SIZE = Number(process.env.NEXT_PUBLIC_BATCH_SIZE);
-const BATCH_INTERVAL_MIN = Number(process.env.NEXT_PUBLIC_BATCH_INTERVAL_MIN);
+const BATCH_SIZE = Number(process.env.NEXT_PUBLIC_SIMULATION_BATCH_SIZE);
+const BATCH_INTERVAL_MIN = Number(
+  process.env.NEXT_PUBLIC_SIMULATION_BATCH_INTERVAL_MIN,
+);
 const BATCH_INTERVAL_MS = BATCH_INTERVAL_MIN * 60 * 1000;
 const SIMULATION_DURATION_MIN = Number(
   process.env.NEXT_PUBLIC_SIMULATION_DURATION_MIN,
