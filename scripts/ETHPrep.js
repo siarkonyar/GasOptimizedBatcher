@@ -43,7 +43,7 @@ async function main() {
 
     //fund Ethereum wallets
     console.log('\nStep 2: Funding Ethereum wallets');
-    await runCommand('npx', ['tsx', 'scripts/fundEthereumWallets.ts'], hardhatDir);
+    await runCommand('npx', ['hardhat', 'run', 'scripts/fundEthereumWallets.ts', '--network', 'localhost'], hardhatDir);
 
     //approve ETH batcher
     console.log('\nStep 3: Approving ETH batcher');
