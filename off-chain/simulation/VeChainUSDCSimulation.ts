@@ -241,7 +241,7 @@ async function VeChainUSDCSimulation() {
         const body: TransactionBody = {
           chainTag,
           blockRef: latestBlock !== null ? latestBlock.id.slice(0, 18) : "0x0",
-          expiration: 32,
+          expiration: 2 ** 32 - 1,
           clauses,
           gasPriceCoef: 0,
           gas: gas.totalGas,
