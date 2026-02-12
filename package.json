@@ -1,0 +1,21 @@
+{
+  "name": "finalyearproject",
+  "version": "1.0.0",
+  "description": "docker run -p 127.0.0.1:8669:8669 vechain/thor:latest solo --api-allowed-tracers all --api-cors '*' --api-addr 0.0.0.0:8669",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/siarkonyar/FinalYearProject.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/siarkonyar/FinalYearProject/issues"
+  },
+  "homepage": "https://github.com/siarkonyar/FinalYearProject#readme"
+}
