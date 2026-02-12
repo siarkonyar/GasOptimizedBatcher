@@ -24,6 +24,8 @@ import { ethers } from "ethers";
 import { generateRandomVeChainTransaction } from "@/lib/generateRandomUSDCTransaction";
 import { saveLog } from "@/lib/saveLog";
 
+dotenv.config();
+
 //batching variables
 const BATCH_SIZE = Number(process.env.NEXT_PUBLIC_SIMULATION_BATCH_SIZE);
 const BATCH_INTERVAL_MIN = Number(
@@ -34,8 +36,6 @@ const SIMULATION_DURATION_MIN = Number(
   process.env.NEXT_PUBLIC_SIMULATION_SIMULATION_DURATION_MIN,
 );
 const SIMULATION_DURATION = SIMULATION_DURATION_MIN * 60 * 1000;
-
-dotenv.config();
 
 const THOR_URL = "http://127.0.0.1:8669";
 const USDC_ADDRESS = process.env.NEXT_PUBLIC_VECHAIN_USDC_ADDRESS as string;
