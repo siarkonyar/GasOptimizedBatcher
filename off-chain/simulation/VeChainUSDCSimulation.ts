@@ -25,11 +25,13 @@ import { generateRandomVeChainTransaction } from "@/lib/generateRandomUSDCTransa
 import { saveLog } from "@/lib/saveLog";
 
 //batching variables
-const BATCH_SIZE = Number(process.env.NEXT_PUBLIC_BATCH_SIZE);
-const BATCH_INTERVAL_MIN = Number(process.env.NEXT_PUBLIC_BATCH_INTERVAL_MIN);
+const BATCH_SIZE = Number(process.env.NEXT_PUBLIC_SIMULATION_BATCH_SIZE);
+const BATCH_INTERVAL_MIN = Number(
+  process.env.NEXT_PUBLIC_SIMULATION_BATCH_INTERVAL_MIN,
+);
 const BATCH_INTERVAL_MS = BATCH_INTERVAL_MIN * 60 * 1000;
 const SIMULATION_DURATION_MIN = Number(
-  process.env.NEXT_PUBLIC_SIMULATION_DURATION_MIN,
+  process.env.NEXT_PUBLIC_SIMULATION_SIMULATION_DURATION_MIN,
 );
 const SIMULATION_DURATION = SIMULATION_DURATION_MIN * 60 * 1000;
 
