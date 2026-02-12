@@ -3,6 +3,9 @@ import { recipients } from "@/lib/vechain-wallets";
 import { Transaction, TransactionBody } from "@vechain/sdk-core";
 import { ThorClient } from "@vechain/sdk-network";
 import { ethers } from "ethers";
+import * as dotenv from "dotenv";
+
+dotenv.config();
 
 const THOR_URL = "http://127.0.0.1:8669";
 const USDC_ADDRESS = process.env.NEXT_PUBLIC_VECHAIN_USDC_ADDRESS as string;
@@ -50,14 +53,7 @@ async function approveBatcherForAll() {
         ethers.getBytes(recipients[i].privateKey),
       );
 
-      const sendTransactionResult =
-        await thorSoloClient.transactions.sendTransaction(signedTransaction);
-
-      const receipt = await thorSoloClient.transactions.waitForTransaction(
-        sendTransactionResult.id,
-      );
-
-      console.log(receipt);
+      await thorSoloClient.transactions.sendTransaction(signedTransaction);
     }
 
     console.log("✅ All wallets approved the smart contract.");
