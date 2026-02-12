@@ -1,5 +1,8 @@
 import { adminWallet, senders } from "@/lib/ethereum-wallets";
 import { ethers } from "ethers";
+import * as dotenv from "dotenv";
+
+dotenv.config();
 
 const HARDHAT_RPC_URL = "http://127.0.0.1:8545";
 const USDC_ADDRESS = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";

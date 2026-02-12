@@ -16,7 +16,6 @@ const HARDHAT_RPC_URL = "http://127.0.0.1:8545";
 const USDC_ADDRESS = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
 const BATCH_CONTRACT_ADDRESS = process.env
   .NEXT_PUBLIC_ETHEREUM_BATCHER_ADDRESS as `0x${string}`;
-const SIMULATION_DURATION = 5 * 60 * 1000;
 const USDC_ABI = [
   {
     name: "transfer",
@@ -31,9 +30,13 @@ const USDC_ABI = [
 ] as const;
 
 //batching variables
-const BATCH_SIZE = 5;
-const BATCH_INTERVAL_MIN = 1;
+const BATCH_SIZE = Number(process.env.NEXT_PUBLIC_BATCH_SIZE);
+const BATCH_INTERVAL_MIN = Number(process.env.NEXT_PUBLIC_BATCH_INTERVAL_MIN);
 const BATCH_INTERVAL_MS = BATCH_INTERVAL_MIN * 60 * 1000;
+const SIMULATION_DURATION_MIN = Number(
+  process.env.NEXT_PUBLIC_SIMULATION_DURATION_MIN,
+);
+const SIMULATION_DURATION = SIMULATION_DURATION_MIN * 60 * 1000;
 
 const simulationLog: SimulationLog = {
   simulationStartTime: Date.now(),
@@ -52,7 +55,6 @@ const simulationLog: SimulationLog = {
 };
 
 let individualTransactionsBuffer: IndividualTxLog[] = [];
-
 
 async function executeBatch(
   batch: Transaction[],
