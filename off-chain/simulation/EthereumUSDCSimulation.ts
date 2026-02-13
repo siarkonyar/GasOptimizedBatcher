@@ -91,6 +91,8 @@ async function executeBatch(
     const recipients = [];
     const amounts = [];
 
+    const senderNoncesMap = new Map<string, bigint>();
+
     //every sender needs to sign the transaction to be included in the batch
     for (let i = 0; i < batch.length; i++) {
       const tx = batch[i];
@@ -100,7 +102,15 @@ async function executeBatch(
         provider,
       );
 
-      const nonce = await contract.nonces(tx.sender);
+      let nonce: bigint;
+
+      if (senderNoncesMap.has(tx.sender)) {
+        nonce = senderNoncesMap.get(tx.sender)! + BigInt(1);
+        senderNoncesMap.set(tx.sender, nonce);
+      } else {
+        nonce = await contract.nonces(tx.sender);
+        senderNoncesMap.set(tx.sender, nonce);
+      }
 
       const messageHash = ethers.solidityPackedKeccak256(
         ["address", "address", "uint256", "uint256"],
