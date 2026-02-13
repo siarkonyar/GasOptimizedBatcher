@@ -39,7 +39,7 @@ async function main() {
 
     //deploy ETH Batcher contract
     console.log('\nStep 1: Deploying ETH Batcher contract');
-    await runCommand('npx', ['tsx', 'scripts/deployETHBatcher.ts'], hardhatDir);
+    await runCommand('npx', ['hardhat', 'run', 'scripts/deployETHBatcher.ts', '--network', 'localhost'], hardhatDir);
 
     //fund Ethereum wallets
     console.log('\nStep 2: Funding Ethereum wallets');

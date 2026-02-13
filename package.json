@@ -4,7 +4,9 @@
   "description": "docker run -p 127.0.0.1:8669:8669 vechain/thor:latest solo --api-allowed-tracers all --api-cors '*' --api-addr 0.0.0.0:8669",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "VETprep": "node scripts/VETPrep.js",
+    "ETHprep": "node scripts/ETHPrep.js"
   },
   "repository": {
     "type": "git",
