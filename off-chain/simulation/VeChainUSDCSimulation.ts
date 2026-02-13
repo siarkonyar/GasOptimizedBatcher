@@ -23,6 +23,7 @@ import * as dotenv from "dotenv";
 import { ethers } from "ethers";
 import { generateRandomVeChainTransaction } from "@/lib/generateRandomUSDCTransaction";
 import { saveLog } from "@/lib/saveLog";
+import { SDKProvider } from "@metamask/sdk";
 
 dotenv.config();
 
@@ -95,14 +96,21 @@ async function executeBatch(batch: TransactionType[], batchNumber: number) {
     const recipients = [];
     const amounts = [];
 
+    const senderNoncesMap = new Map<string, bigint>();
+
     //every sender needs to sign the transaction to be included in the batch
     for (let i = 0; i < batch.length; i++) {
       const tx = batch[i];
 
-      // Note: The SDK returns an array of return values.
-      // Since 'nonces' returns one value, we take the first item.
-      const nonceResult = await batchContract.read.nonces(tx.sender);
-      const nonce = nonceResult[0];
+      let nonce: bigint;
+
+      if (senderNoncesMap.has(tx.sender)) {
+        nonce = senderNoncesMap.get(tx.sender)! + BigInt(1);
+        senderNoncesMap.set(tx.sender, nonce);
+      } else {
+        const nonceResult = await batchContract.read.nonces(tx.sender);
+        nonce = nonceResult[0];
+      }
 
       const packedData = ethers.solidityPacked(
         ["address", "address", "uint256", "uint256"],
