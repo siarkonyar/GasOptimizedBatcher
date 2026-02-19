@@ -175,6 +175,7 @@ async function executeBatch(batch: TransactionType[], batchNumber: number) {
         sender: tx.sender,
         recipient: tx.recipient,
         amount: tx.amount.toString(),
+        timeStamp: tx.timeStamp
       })),
     });
 

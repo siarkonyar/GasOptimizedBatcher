@@ -5,7 +5,6 @@ import {
   senders as vechainSenders,
   recipients as vechainRecipients,
 } from "@/lib/vechain-wallets";
-import { timeStamp } from "node:console";
 
 const senderAddresses = senders.map((s) => s.address) as `0x${string}`[];
 
