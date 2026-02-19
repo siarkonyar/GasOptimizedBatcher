@@ -105,11 +105,11 @@ async function executeBatch(
       let nonce: bigint;
 
       if (senderNoncesMap.has(tx.sender)) {
-        nonce = senderNoncesMap.get(tx.sender)! + BigInt(1);
-        senderNoncesMap.set(tx.sender, nonce);
+        nonce = senderNoncesMap.get(tx.sender)!;
+        senderNoncesMap.set(tx.sender, nonce + BigInt(1));
       } else {
         nonce = await contract.nonces(tx.sender);
-        senderNoncesMap.set(tx.sender, nonce);
+        senderNoncesMap.set(tx.sender, nonce + BigInt(1));
       }
 
       const messageHash = ethers.solidityPackedKeccak256(

@@ -23,7 +23,6 @@ import * as dotenv from "dotenv";
 import { ethers } from "ethers";
 import { generateRandomVeChainTransaction } from "@/lib/generateRandomUSDCTransaction";
 import { saveLog } from "@/lib/saveLog";
-import { SDKProvider } from "@metamask/sdk";
 
 dotenv.config();
 
@@ -105,11 +104,12 @@ async function executeBatch(batch: TransactionType[], batchNumber: number) {
       let nonce: bigint;
 
       if (senderNoncesMap.has(tx.sender)) {
-        nonce = senderNoncesMap.get(tx.sender)! + BigInt(1);
-        senderNoncesMap.set(tx.sender, nonce);
+        nonce = senderNoncesMap.get(tx.sender)!;
+        senderNoncesMap.set(tx.sender, nonce + BigInt(1));
       } else {
         const nonceResult = await batchContract.read.nonces(tx.sender);
         nonce = nonceResult[0];
+        senderNoncesMap.set(tx.sender, nonce + BigInt(1));
       }
 
       const packedData = ethers.solidityPacked(
