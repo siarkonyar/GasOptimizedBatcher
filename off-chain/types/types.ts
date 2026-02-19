@@ -23,6 +23,7 @@ export interface BatchLog {
     sender: string;
     recipient: string;
     amount: string;
+    timeStamp: number;
   }>;
 }
 
