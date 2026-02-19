@@ -37,6 +37,7 @@ lerna-debug.log*
 hardhat/cache/
 hardhat/artifacts/
 hardhat/typechain-types/
+hardhat/ignition/deployments/
 
 # Frontend
 frontend/build/

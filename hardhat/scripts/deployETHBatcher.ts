@@ -6,6 +6,8 @@ import * as path from "path";
 async function main() {
   console.log("🚀 Starting deployment...");
 
+  await cleanDeployments();
+
   const deploymentId = `ETHBatch_deployment_${Date.now()}`;
 
   const { ETHBatch } = await ignition.deploy(ETHBatchModule, {
@@ -16,6 +18,15 @@ async function main() {
   console.log(`✅ ETHBatch deployed to: ${address}`);
 
   saveAddressToEnv(address);
+}
+
+async function cleanDeployments() {
+  const deploymentsPath = path.join(__dirname, "../ignition/deployments");
+
+  if (fs.existsSync(deploymentsPath)) {
+    fs.rmSync(deploymentsPath, { recursive: true, force: true });
+    console.log(`Deleted deployments folder: ${deploymentsPath}`);
+  }
 }
 
 function saveAddressToEnv(value: string) {
