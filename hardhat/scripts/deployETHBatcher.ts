@@ -6,7 +6,11 @@ import * as path from "path";
 async function main() {
   console.log("🚀 Starting deployment...");
 
-  const { ETHBatch } = await ignition.deploy(ETHBatchModule);
+  const deploymentId = `ETHBatch_deployment_${Date.now()}`;
+
+  const { ETHBatch } = await ignition.deploy(ETHBatchModule, {
+    deploymentId: deploymentId,
+  });
 
   const address = await ETHBatch.getAddress();
   console.log(`✅ ETHBatch deployed to: ${address}`);
