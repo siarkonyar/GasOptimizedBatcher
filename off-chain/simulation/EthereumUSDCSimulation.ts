@@ -209,7 +209,7 @@ async function USDCSimulation() {
     while (Date.now() < endTime) {
       // Check if it's time to execute a batch
       if (Date.now() >= nextBatchTime || batch.length >= BATCH_SIZE) {
-        if (Date.now() >= nextBatchTime) nextBatchTime += BATCH_INTERVAL_MS; // schedule the next batch
+        nextBatchTime += BATCH_INTERVAL_MS;
         await executeBatch(batch, batcherWallet, batchNumber, provider);
         batch = []; // Clear the batch
         batchNumber++;
