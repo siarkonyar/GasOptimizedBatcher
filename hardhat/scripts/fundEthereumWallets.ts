@@ -24,9 +24,9 @@ async function main() {
   const whaleSigner = await ethers.getSigner(USDC_WHALE);
   const usdc = new ethers.Contract(USDC_ADDRESS, ERC20_ABI, whaleSigner);
 
-  const amountPerWallet = ethers.parseUnits("1000", 6); // 1,000 USDC per wallet
+  const amountPerWallet = ethers.parseUnits("100000", 6); // 1,000 USDC per wallet
 
-  console.log(`Funding ${recipients.length} accounts with 1000 USDC each...`);
+  console.log(`Funding ${recipients.length} accounts with 100000 USDC each...`);
 
   /* //Define gas overrides (force a high fee cap to ensure it passes)
   const overrides = {
