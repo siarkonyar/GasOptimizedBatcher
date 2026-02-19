@@ -161,6 +161,7 @@ async function executeBatch(
         sender: tx.sender,
         recipient: tx.recipient,
         amount: tx.amount.toString(),
+        timeStamp: tx.timeStamp,
       })),
     });
 

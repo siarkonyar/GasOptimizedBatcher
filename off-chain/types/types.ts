@@ -3,6 +3,7 @@ export type Transaction = {
   recipient: `0x${string}`;
   amount: bigint;
   senderPrivateKey?: `0x${string}`;
+  timeStamp: number;
 };
 
 export interface IndividualTxLog {
@@ -22,6 +23,7 @@ export interface BatchLog {
     sender: string;
     recipient: string;
     amount: string;
+    timeStamp: number;
   }>;
 }
 

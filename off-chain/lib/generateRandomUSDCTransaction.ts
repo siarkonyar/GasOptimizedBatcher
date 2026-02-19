@@ -27,6 +27,7 @@ export function generateRandomBatch(count: number): Transaction[] {
       sender: sender,
       recipient: recipient,
       amount: amount,
+      timeStamp: Date.now(),
     });
   }
 
@@ -46,6 +47,7 @@ export function generateRandomTransaction(): Transaction {
     recipient,
     amount,
     senderPrivateKey,
+    timeStamp: Date.now(),
   };
 
   return transaction;
@@ -76,6 +78,7 @@ export function generateRandomVeChainTransaction(): Transaction {
     recipient,
     amount,
     senderPrivateKey,
+    timeStamp: Date.now(),
   };
 
   return transaction;
