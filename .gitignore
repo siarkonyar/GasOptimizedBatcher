@@ -34,7 +34,7 @@ lerna-debug.log*
 *~
 
 # Hardhat
-hardhat/cache/
+hardhat/cache 
 hardhat/artifacts/
 hardhat/typechain-types/
 hardhat/ignition/deployments/
