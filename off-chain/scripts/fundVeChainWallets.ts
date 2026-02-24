@@ -73,7 +73,7 @@ async function seed() {
       Clause.callFunction(
         Address.of(USDC_ADDRESS),
         ABIContract.ofAbi(VECHAIN_USDC_CONTRACT_ABI).getFunction("mint"),
-        [r.address, 100000000000000],
+        [r.address, 100000000000],
       ),
     ),
   ];
