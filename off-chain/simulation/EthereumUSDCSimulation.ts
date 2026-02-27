@@ -274,7 +274,7 @@ async function USDCSimulation() {
         continue;
       }
 
-      //random delay
+      //manage throughput
       await new Promise((r) =>
         setTimeout(r, getPoissonDelay(TARGET_THROUGHPUT)),
       );

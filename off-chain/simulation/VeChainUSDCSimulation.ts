@@ -55,6 +55,8 @@ const godMnemonic =
   "denial kitchen pet squirrel other broom bar gas better priority spoil cross";
 const godPrivateKey = Mnemonic.toPrivateKey(godMnemonic.split(" "));
 
+const TARGET_THROUGHPUT = Number(process.env.NEXT_PUBLIC_TARGET_TPS || 5);
+
 const simulationLog: SimulationLog = {
   simulationStartTime: Date.now(),
   simulationEndTime: 0,
@@ -72,6 +74,18 @@ const simulationLog: SimulationLog = {
 };
 
 let individualTransactionsBuffer: IndividualTxLog[] = [];
+
+function getPoissonDelay(targetTPS: number): number {
+  //prevent division by zero
+  if (targetTPS <= 0) return 3000;
+
+  const ratePerMs = targetTPS / 1000;
+
+  //The formula: -ln(1-U) / λ
+  const delayMs = -Math.log(1 - Math.random()) / ratePerMs;
+
+  return delayMs;
+}
 
 async function executeBatch(batch: TransactionType[], batchNumber: number) {
   if (batch.length === 0) {
@@ -303,8 +317,10 @@ async function VeChainUSDCSimulation() {
 
       processNewTransaction(chainTag);
 
-      //random delay
-      await new Promise((r) => setTimeout(r, Math.random() * 3000));
+      //manage throughput
+      await new Promise((r) =>
+        setTimeout(r, getPoissonDelay(TARGET_THROUGHPUT)),
+      );
     }
 
     //wait for all pending transactions to be executed
