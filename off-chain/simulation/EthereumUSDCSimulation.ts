@@ -40,6 +40,8 @@ const SIMULATION_DURATION_MIN = Number(
 );
 const SIMULATION_DURATION = SIMULATION_DURATION_MIN * 60 * 1000;
 
+const TARGET_THROUGHPUT = Number(process.env.NEXT_PUBLIC_TARGET_TPS || 5);
+
 const simulationLog: SimulationLog = {
   simulationStartTime: Date.now(),
   simulationEndTime: 0,
@@ -57,6 +59,18 @@ const simulationLog: SimulationLog = {
 };
 
 let individualTransactionsBuffer: IndividualTxLog[] = [];
+
+function getPoissonDelay(targetTPS: number): number {
+  //prevent division by zero
+  if (targetTPS <= 0) return 3000;
+
+  const ratePerMs = targetTPS / 1000;
+
+  //The formula: -ln(U) / λ
+  const delayMs = -Math.log(Math.random()) / ratePerMs;
+
+  return delayMs;
+}
 
 async function executeBatch(
   batch: Transaction[],
@@ -261,7 +275,9 @@ async function USDCSimulation() {
       }
 
       //random delay
-      await new Promise((r) => setTimeout(r, Math.random() * 3000));
+      await new Promise((r) =>
+        setTimeout(r, getPoissonDelay(TARGET_THROUGHPUT)),
+      );
     }
     // Execute any remaining transactions in the batch after simulation ends
     if (batch.length > 0) {
