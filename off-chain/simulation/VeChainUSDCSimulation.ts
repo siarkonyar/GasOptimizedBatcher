@@ -194,6 +194,8 @@ async function VeChainUSDCSimulation() {
   );
   console.log(`⏱️ Batch Interval: Every ${BATCH_INTERVAL_MIN} minutes\n`);
 
+  let activeProcesses = 0; // track active promisses
+
   const startTime = Date.now();
   const endTime = startTime + SIMULATION_DURATION;
   let nextBatchTime = startTime + BATCH_INTERVAL_MS;
@@ -215,6 +217,70 @@ async function VeChainUSDCSimulation() {
     }
   }, 1000);
 
+  const processNewTransaction = async (chainTag: number, blockRef: string) => {
+    activeProcesses++;
+    try {
+      const transaction = await generateRandomVeChainTransaction();
+
+      const individualWallet = {
+        privateKey: transaction.senderPrivateKey,
+        address: transaction.sender,
+      };
+      const clauses: Clause[] = [
+        Clause.callFunction(
+          Address.of(USDC_ADDRESS),
+          ABIContract.ofAbi(VECHAIN_USDC_CONTRACT_ABI).getFunction("transfer"),
+          [transaction.recipient, transaction.amount / BigInt(1000000)],
+        ),
+      ];
+
+      const gas = await thorSoloClient.gas.estimateGas(
+        clauses,
+        individualWallet.address,
+      );
+
+      const body: TransactionBody = {
+        chainTag,
+        blockRef,
+        expiration: 2 ** 32 - 1,
+        clauses,
+        gasPriceCoef: 0,
+        gas: gas.totalGas,
+        dependsOn: null,
+        nonce: Date.now(),
+      };
+
+      const signedTransaction = Transaction.of(body).sign(
+        Hex.of(transaction.senderPrivateKey!).bytes,
+      );
+
+      const sendTransactionResult =
+        await thorSoloClient.transactions.sendTransaction(signedTransaction);
+
+      const txReceipt = await thorSoloClient.transactions.waitForTransaction(
+        sendTransactionResult.id,
+      );
+
+      const gasUsed = String(txReceipt!.gasUsed);
+
+      //add the transaction to the log, if it fails it wont be added
+      //add them to the buffer first. if the batch fails, we wont add these transactions to the data.
+      individualTransactionsBuffer.push({
+        sender: transaction.sender,
+        recipient: transaction.recipient,
+        amount: transaction.amount.toString(),
+        gasUsed: gasUsed,
+        timestamp: Date.now(),
+      });
+
+      batch.push(transaction);
+    } catch (txError) {
+      console.error("Transaction failed:", txError);
+    } finally {
+      activeProcesses--;
+    }
+  };
+
   try {
     const bestBlock = await thorSoloClient.blocks.getBestBlockCompressed();
     const chainTag = await thorSoloClient.nodes.getChaintag();
@@ -228,76 +294,7 @@ async function VeChainUSDCSimulation() {
         batchNumber++;
       }
 
-      try {
-        const transaction = await generateRandomVeChainTransaction();
-
-        const individualWallet = {
-          privateKey: transaction.senderPrivateKey,
-          address: transaction.sender,
-        };
-        const clauses: Clause[] = [
-          Clause.callFunction(
-            Address.of(USDC_ADDRESS),
-            ABIContract.ofAbi(VECHAIN_USDC_CONTRACT_ABI).getFunction(
-              "transfer",
-            ),
-            [transaction.recipient, transaction.amount / BigInt(1000000)],
-          ),
-        ];
-
-        const gas = await thorSoloClient.gas.estimateGas(
-          clauses,
-          individualWallet.address,
-        );
-
-        const body: TransactionBody = {
-          chainTag,
-          blockRef,
-          expiration: 2 ** 32 - 1,
-          clauses,
-          gasPriceCoef: 0,
-          gas: gas.totalGas,
-          dependsOn: null,
-          nonce: Date.now(),
-        };
-
-        const signedTransaction = Transaction.of(body).sign(
-          Hex.of(transaction.senderPrivateKey!).bytes,
-        );
-
-        const sendTransactionResult =
-          await thorSoloClient.transactions.sendTransaction(signedTransaction);
-
-        const txReceipt = await thorSoloClient.transactions.waitForTransaction(
-          sendTransactionResult.id,
-        );
-
-        const gasUsed = String(txReceipt!.gasUsed);
-
-        console.log("------------------------------------------------");
-
-        console.log(
-          `\n✅ Individual Tx executed reverted: ${txReceipt?.reverted}`,
-        );
-        console.log(`\n⛽ Gas Used: ${gasUsed}`);
-
-        console.log("------------------------------------------------");
-
-        //add the transaction to the log, if it fails it wont be added
-        //add them to the buffer first. if the batch fails, we wont add these transactions to the data.
-        individualTransactionsBuffer.push({
-          sender: transaction.sender,
-          recipient: transaction.recipient,
-          amount: transaction.amount.toString(),
-          gasUsed: gasUsed,
-          timestamp: Date.now(),
-        });
-
-        batch.push(transaction);
-      } catch (batchTxError) {
-        console.error("Transaction failed:", batchTxError);
-        continue;
-      }
+      processNewTransaction(chainTag, blockRef);
 
       //random delay
       await new Promise((r) => setTimeout(r, Math.random() * 3000));
