@@ -80,7 +80,7 @@ async function executeBatch(
 ) {
   if (batch.length === 0) {
     console.log(
-      `⚠️ Batch #${batchNumber}: No transactions to batch. Skipping...`,
+      `\n⚠️ Batch #${batchNumber}: No transactions to batch. Skipping...`,
     );
     return;
   }
@@ -148,7 +148,7 @@ async function executeBatch(
       signatures,
     );
 
-    console.log(`Batch #${batchNumber} Tx Sent: ${batchedTx.hash}`);
+    console.log(`\nBatch #${batchNumber} Tx Sent: ${batchedTx.hash}`);
 
     const batchedTxReceipt = await batchedTx.wait();
 
@@ -159,10 +159,10 @@ async function executeBatch(
         : String(batchedTxReceipt.gasUsed));
 
     console.log(
-      `🎉 Batch #${batchNumber} Confirmed! Total Gas: ${batchGasUsed}`,
+      `\n🎉 Batch #${batchNumber} Confirmed! Total Gas: ${batchGasUsed}`,
     );
 
-    console.log("------------------------------------------------");
+    console.log("\n------------------------------------------------");
 
     //add batch to the log
 
@@ -195,6 +195,8 @@ async function USDCSimulation() {
     `⏱️ Simulation Duration: ${SIMULATION_DURATION / 1000 / 60} minutes`,
   );
   console.log(`⏱️ Batch Interval: Every ${BATCH_INTERVAL_MIN} minutes\n`);
+  console.log(`📦Batch Size: ${BATCH_SIZE}`);
+  console.log(`λ Throughput: ${TARGET_THROUGHPUT} per second`);
 
   const batcherWallet = new ethers.Wallet(adminWallet.privateKey, provider);
 
@@ -253,10 +255,10 @@ async function USDCSimulation() {
             ? txReceipt.gasUsed.toString()
             : String(txReceipt.gasUsed));
 
-        console.log(`✅ Individual Tx: ${tx.hash}`);
-        console.log(`⛽ Gas Used: ${gasUsed}`);
+        console.log(`\n✅ Individual Tx: ${tx.hash}`);
+        console.log(`\n⛽ Gas Used: ${gasUsed}`);
 
-        console.log("------------------------------------------------");
+        console.log("\n------------------------------------------------");
 
         //add the transaction to the log, if it fails it wont be added
         //add them to the buffer first. if the batch fails, we wont add these transactions to the data.
@@ -270,7 +272,7 @@ async function USDCSimulation() {
 
         batch.push(transaction);
       } catch (txError) {
-        console.error("Transaction failed:", txError);
+        console.error("\nTransaction failed:", txError);
         continue;
       }
 
@@ -285,7 +287,7 @@ async function USDCSimulation() {
       await executeBatch(batch, batcherWallet, batchNumber, provider);
     }
 
-    console.log(`--- Simulation Complete ---`);
+    console.log(`\n--- Simulation Complete ---\n`);
 
     simulationLog.simulationEndTime = Date.now();
     saveLog(simulationLog, "simulation/EthereumSimulationLogs");

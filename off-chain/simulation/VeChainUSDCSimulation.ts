@@ -90,13 +90,13 @@ function getPoissonDelay(targetTPS: number): number {
 async function executeBatch(batch: TransactionType[], batchNumber: number) {
   if (batch.length === 0) {
     console.log(
-      `⚠️ Batch #${batchNumber}: No transactions to batch. Skipping...`,
+      `\n⚠️ Batch #${batchNumber}: No transactions to batch. Skipping...`,
     );
     return;
   }
 
   if (batch.length >= BATCH_SIZE) {
-    console.log(`Batch size is reached.`);
+    console.log(`\nBatch size is reached.`);
   }
 
   console.log(
@@ -207,6 +207,8 @@ async function VeChainUSDCSimulation() {
     `⏱️ Simulation Duration: ${SIMULATION_DURATION / 1000 / 60} minutes`,
   );
   console.log(`⏱️ Batch Interval: Every ${BATCH_INTERVAL_MIN} minutes\n`);
+  console.log(`📦Batch Size: ${BATCH_SIZE}`);
+  console.log(`λ Throughput: ${TARGET_THROUGHPUT} per second`);
 
   let activeProcesses = 0; // track active promisses
 
@@ -224,9 +226,7 @@ async function VeChainUSDCSimulation() {
         `\r⏳ Total remaining: ${remaining}s | Next batch in: ${nextBatchIn}s | Collected: ${batch.length} txs `,
       );
     } else {
-      process.stdout.write(
-        `\r⌛ Time Window Closed.                                          \n`,
-      );
+      process.stdout.write(`\r⌛ Time Window Closed.\n`);
       clearInterval(countdownInterval);
     }
   }, 1000);
@@ -274,11 +274,11 @@ async function VeChainUSDCSimulation() {
       const sendTransactionResult =
         await thorSoloClient.transactions.sendTransaction(signedTransaction);
 
-      console.log("\n------------------------------------------------------\n");
+      console.log("\n------------------------------------------------------");
 
-      console.log(`\n🚀 Tx Sent (Pending in Mempool)\n`);
+      console.log(`\n🚀 Tx Sent (Pending in Mempool)`);
 
-      console.log("\n------------------------------------------------------\n");
+      console.log("\n------------------------------------------------------");
 
       const txReceipt = await thorSoloClient.transactions.waitForTransaction(
         sendTransactionResult.id,
@@ -331,11 +331,11 @@ async function VeChainUSDCSimulation() {
 
     // Execute any remaining transactions in the batch after simulation ends
     if (batch.length > 0) {
-      console.log("Executing final batch with remaining transactions...");
+      console.log("\nExecuting final batch with remaining transactions...");
       await executeBatch(batch, batchNumber);
     }
 
-    console.log(`--- Simulation Complete ---`);
+    console.log(`\n--- Simulation Complete ---\n`);
 
     simulationLog.simulationEndTime = Date.now();
     saveLog(simulationLog, "simulation/VeChainSimulationLogs");
