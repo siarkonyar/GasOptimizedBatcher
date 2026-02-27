@@ -217,9 +217,12 @@ async function VeChainUSDCSimulation() {
     }
   }, 1000);
 
-  const processNewTransaction = async (chainTag: number, blockRef: string) => {
+  const processNewTransaction = async (chainTag: number) => {
     activeProcesses++;
     try {
+      const bestBlock = await thorSoloClient.blocks.getBestBlockCompressed();
+      const blockRef = bestBlock !== null ? bestBlock.id.slice(0, 18) : "0x0";
+
       const transaction = await generateRandomVeChainTransaction();
 
       const individualWallet = {
@@ -257,17 +260,19 @@ async function VeChainUSDCSimulation() {
       const sendTransactionResult =
         await thorSoloClient.transactions.sendTransaction(signedTransaction);
 
+      console.log("\n------------------------------------------------------\n");
+
+      console.log(`\n🚀 Tx Sent (Pending in Mempool)\n`);
+
+      console.log("\n------------------------------------------------------\n");
+
       const txReceipt = await thorSoloClient.transactions.waitForTransaction(
         sendTransactionResult.id,
       );
 
       const gasUsed = String(txReceipt!.gasUsed);
 
-      console.log("\n--------------------------------------------------------");
-
-      console.log("\n✅ Individual Tx executed");
-
-      console.log("\n--------------------------------------------------------");
+      console.log("\n✅ Individual Tx executed\n");
 
       individualTransactionsBuffer.push({
         sender: transaction.sender,
@@ -286,9 +291,7 @@ async function VeChainUSDCSimulation() {
   };
 
   try {
-    const bestBlock = await thorSoloClient.blocks.getBestBlockCompressed();
     const chainTag = await thorSoloClient.nodes.getChaintag();
-    const blockRef = bestBlock !== null ? bestBlock.id.slice(0, 18) : "0x0";
     while (Date.now() < endTime) {
       // Check if it's time to execute a batch
       if (Date.now() >= nextBatchTime || batch.length >= BATCH_SIZE) {
@@ -298,7 +301,7 @@ async function VeChainUSDCSimulation() {
         batchNumber++;
       }
 
-      processNewTransaction(chainTag, blockRef);
+      processNewTransaction(chainTag);
 
       //random delay
       await new Promise((r) => setTimeout(r, Math.random() * 3000));
