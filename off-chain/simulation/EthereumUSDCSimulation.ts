@@ -66,8 +66,8 @@ function getPoissonDelay(targetTPS: number): number {
 
   const ratePerMs = targetTPS / 1000;
 
-  //The formula: -ln(U) / λ
-  const delayMs = -Math.log(Math.random()) / ratePerMs;
+  //The formula: -ln(1-U) / λ
+  const delayMs = -Math.log(1 - Math.random()) / ratePerMs;
 
   return delayMs;
 }
