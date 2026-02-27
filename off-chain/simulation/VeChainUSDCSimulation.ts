@@ -175,7 +175,7 @@ async function executeBatch(batch: TransactionType[], batchNumber: number) {
         sender: tx.sender,
         recipient: tx.recipient,
         amount: tx.amount.toString(),
-        timeStamp: tx.timeStamp
+        timeStamp: tx.timeStamp,
       })),
     });
 
@@ -216,8 +216,9 @@ async function VeChainUSDCSimulation() {
   }, 1000);
 
   try {
-    const latestBlock = await thorSoloClient.blocks.getBestBlockCompressed();
+    const bestBlock = await thorSoloClient.blocks.getBestBlockCompressed();
     const chainTag = await thorSoloClient.nodes.getChaintag();
+    const blockRef = bestBlock !== null ? bestBlock.id.slice(0, 18) : "0x0";
     while (Date.now() < endTime) {
       // Check if it's time to execute a batch
       if (Date.now() >= nextBatchTime || batch.length >= BATCH_SIZE) {
@@ -251,7 +252,7 @@ async function VeChainUSDCSimulation() {
 
         const body: TransactionBody = {
           chainTag,
-          blockRef: latestBlock !== null ? latestBlock.id.slice(0, 18) : "0x0",
+          blockRef,
           expiration: 2 ** 32 - 1,
           clauses,
           gasPriceCoef: 0,
