@@ -229,6 +229,7 @@ async function VeChainUSDCSimulation() {
       process.stdout.write(`\r⌛ Time Window Closed.\n`);
       clearInterval(countdownInterval);
     }
+    console.log("\n------------------------------------------------");
   }, 1000);
 
   const processNewTransaction = async (chainTag: number) => {
@@ -274,11 +275,11 @@ async function VeChainUSDCSimulation() {
       const sendTransactionResult =
         await thorSoloClient.transactions.sendTransaction(signedTransaction);
 
-      console.log("\n------------------------------------------------------");
+      console.log("------------------------------------------------------");
 
-      console.log(`\n🚀 Tx Sent (Pending in Mempool)`);
+      console.log(`🚀 Tx Sent (Pending in Mempool)`);
 
-      console.log("\n------------------------------------------------------");
+      console.log("------------------------------------------------------");
 
       const txReceipt = await thorSoloClient.transactions.waitForTransaction(
         sendTransactionResult.id,
@@ -286,7 +287,7 @@ async function VeChainUSDCSimulation() {
 
       const gasUsed = String(txReceipt!.gasUsed);
 
-      console.log("\n✅ Individual Tx executed\n");
+      console.log("✅ Individual Tx executed");
 
       individualTransactionsBuffer.push({
         sender: transaction.sender,

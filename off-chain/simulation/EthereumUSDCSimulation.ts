@@ -220,6 +220,8 @@ async function USDCSimulation() {
       );
       clearInterval(countdownInterval);
     }
+
+    console.log("\n------------------------------------------------")
   }, 1000);
 
   try {
@@ -256,9 +258,9 @@ async function USDCSimulation() {
             : String(txReceipt.gasUsed));
 
         console.log(`\n✅ Individual Tx: ${tx.hash}`);
-        console.log(`\n⛽ Gas Used: ${gasUsed}`);
+        console.log(`⛽ Gas Used: ${gasUsed}`);
 
-        console.log("\n------------------------------------------------");
+        console.log("------------------------------------------------\n");
 
         //add the transaction to the log, if it fails it wont be added
         //add them to the buffer first. if the batch fails, we wont add these transactions to the data.
