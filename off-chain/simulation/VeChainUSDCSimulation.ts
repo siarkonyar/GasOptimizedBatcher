@@ -63,6 +63,7 @@ const simulationLog: SimulationLog = {
   simulationDuration: SIMULATION_DURATION,
   batchSize: BATCH_SIZE,
   batchIntervalMinutes: BATCH_INTERVAL_MIN,
+  throughput: TARGET_THROUGHPUT,
   individualTransactions: [],
   batches: [],
   summary: {

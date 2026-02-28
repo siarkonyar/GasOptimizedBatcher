@@ -33,6 +33,7 @@ export interface SimulationLog {
   simulationDuration: number;
   batchSize: number;
   batchIntervalMinutes: number;
+  throughput: number;
   individualTransactions: IndividualTxLog[];
   batches: BatchLog[];
   summary: {
