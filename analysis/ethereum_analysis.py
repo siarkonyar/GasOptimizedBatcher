@@ -1,28 +1,35 @@
 import sys
 import os
+import json
 import glob
 import pandas as pd
 
 sys.path.insert(0, os.path.dirname(__file__))
 
-from utils import load_json, print_header
-from gas_analysis import modules/analyse_gas
-from latency_analysis import modules/analyse_latency
+from modules.gas_analysis import analyse_gas
+from modules.latency_analysis import analyse_latency
+
+def load_json(path):
+    with open(path, "r") as f:
+        return json.load(f)
+
+def print_header(title):
+    print("\n" + "=" * 60)
+    print(f"  {title}")
+    print("=" * 60)
 
 ETHEREUM_LOGS_PATH = os.path.join(
     os.path.dirname(__file__),
-    "..",
-    "off-chain", "simulation", "EthereumSimulationLogs"
+    "..", "off-chain", "simulation", "EthereumSimulationLogs"
 )
 
 OUTPUT_PATH = os.path.join(os.path.dirname(__file__), "results", "ethereum_results.csv")
-
 
 def main():
     logs_dir = os.path.abspath(ETHEREUM_LOGS_PATH)
 
     if not os.path.isdir(logs_dir):
-        print(f"Error: Could not find Ethereum logs directory at:\n  {logs_dir}")
+        print(f"Error: Could not find logs directory at:\n  {logs_dir}")
         sys.exit(1)
 
     json_files = sorted(glob.glob(os.path.join(logs_dir, "*.json")))
@@ -32,7 +39,7 @@ def main():
         sys.exit(1)
 
     print_header("Ethereum Gas & Latency Analysis")
-    print(f"  Found {len(json_files)} log file(s) in:\n  {logs_dir}\n")
+    print(f"  Found {len(json_files)} log file(s)\n")
 
     rows = []
 
@@ -43,7 +50,6 @@ def main():
         try:
             data = load_json(json_file)
 
-            # Shared top-level keys
             shared = {
                 "batchSize": data["batchSize"],
                 "batchIntervalMinutes": data["batchIntervalMinutes"],
@@ -72,18 +78,9 @@ def main():
     df = pd.DataFrame(rows)
 
     col_order = [
-        "file",
-        "batchSize",
-        "batchIntervalMinutes",
-        "throughput",
-        "totalIndividualGasUsed",
-        "totalBatchGasUsed",
-        "gasSaved",
-        "percentageSaved",
-        "avgLatencyMs",
-        "minLatencyMs",
-        "maxLatencyMs",
-        "totalTransactionsAnalysed",
+        "file", "batchSize", "batchIntervalMinutes", "throughput",
+        "totalIndividualGasUsed", "totalBatchGasUsed", "gasSaved", "percentageSaved",
+        "avgLatencyMs", "minLatencyMs", "maxLatencyMs", "totalTransactionsAnalysed",
     ]
     df = df[[c for c in col_order if c in df.columns]]
 
@@ -93,7 +90,6 @@ def main():
     print_header("Summary")
     print(df.to_string(index=False))
     print(f"\n✅ Results saved to: {OUTPUT_PATH}")
-
 
 if __name__ == "__main__":
     main()

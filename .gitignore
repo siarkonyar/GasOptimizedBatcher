@@ -34,7 +34,7 @@ lerna-debug.log*
 *~
 
 # Hardhat
-hardhat/cache 
+hardhat/cache
 hardhat/artifacts/
 hardhat/typechain-types/
 hardhat/ignition/deployments/
@@ -45,3 +45,8 @@ frontend/build/
 # simulation logs
 off-chain/simulation/EthereumSimulationLogs
 off-chain/simulation/VeChainSimulationLogs
+
+# analysis
+
+analysis/results/*
+analysis/results
