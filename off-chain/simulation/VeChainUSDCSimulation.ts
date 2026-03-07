@@ -88,7 +88,11 @@ function getPoissonDelay(targetTPS: number): number {
   return delayMs;
 }
 
-async function executeBatch(batch: TransactionType[], batchNumber: number) {
+async function executeBatch(
+  batch: TransactionType[],
+  batchNumber: number,
+  batchIntervalHit: boolean,
+) {
   if (batch.length === 0) {
     console.log(
       `\n⚠️ Batch #${batchNumber}: No transactions to batch. Skipping...`,
@@ -141,6 +145,7 @@ async function executeBatch(batch: TransactionType[], batchNumber: number) {
         ethers.getBytes(tx.senderPrivateKey!),
       );
 
+      // Adjust recovery ID from raw Secp256k1 format (0/1) to Ethereum ecrecover format (27/28)
       signature[64] += 27;
 
       signatures.push(Hex.of(signature).toString());
@@ -186,6 +191,7 @@ async function executeBatch(batch: TransactionType[], batchNumber: number) {
       gasUsed: batchGasUsed,
       timestamp: Date.now(),
       transactionCount: batch.length,
+      batchIntervalHit,
       transactions: batch.map((tx) => ({
         sender: tx.sender,
         recipient: tx.recipient,
@@ -230,7 +236,6 @@ async function VeChainUSDCSimulation() {
       process.stdout.write(`\r⌛ Time Window Closed.\n`);
       clearInterval(countdownInterval);
     }
-    console.log("\n------------------------------------------------");
   }, 1000);
 
   const processNewTransaction = async (chainTag: number) => {
@@ -312,7 +317,9 @@ async function VeChainUSDCSimulation() {
       // Check if it's time to execute a batch
       if (Date.now() >= nextBatchTime || batch.length >= BATCH_SIZE) {
         nextBatchTime = Date.now() + BATCH_INTERVAL_MS;
-        await executeBatch(batch, batchNumber);
+
+        const isIntervalHit = Date.now() >= nextBatchTime;
+        await executeBatch(batch, batchNumber, isIntervalHit);
         batch = []; // Clear the batch
         batchNumber++;
       }
@@ -334,7 +341,7 @@ async function VeChainUSDCSimulation() {
     // Execute any remaining transactions in the batch after simulation ends
     if (batch.length > 0) {
       console.log("\nExecuting final batch with remaining transactions...");
-      await executeBatch(batch, batchNumber);
+      await executeBatch(batch, batchNumber, true);
     }
 
     console.log(`\n--- Simulation Complete ---\n`);
