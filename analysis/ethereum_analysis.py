@@ -3,6 +3,7 @@ import os
 import json
 import glob
 import pandas as pd
+import matplotlib.pyplot as plt
 
 sys.path.insert(0, os.path.dirname(__file__))
 
@@ -90,6 +91,23 @@ def main():
     print_header("Summary")
     print(df.to_string(index=False))
     print(f"\n✅ Results saved to: {OUTPUT_PATH}")
+
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+
+    xs = df["batchSize"]
+    ys = df["batchIntervalMinutes"]
+    zs = df["avgLatencyMs"]
+
+    ax.scatter(xs, ys, zs, c=zs, cmap="viridis", s=60, depthshade=True)
+
+    ax.set_xlabel("Batch Size")
+    ax.set_ylabel("Batch Interval (min)")
+    ax.set_zlabel("Avg Latency (ms)")
+    ax.set_title("Batch Size vs Interval vs Avg Latency")
+
+    plt.tight_layout()
+    plt.show()
 
 if __name__ == "__main__":
     main()
