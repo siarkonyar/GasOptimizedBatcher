@@ -319,8 +319,10 @@ async function VeChainUSDCSimulation() {
         nextBatchTime = Date.now() + BATCH_INTERVAL_MS;
 
         const isIntervalHit = Date.now() >= nextBatchTime;
-        await executeBatch(batch, batchNumber, isIntervalHit);
+
+        const currentBatch = [...batch];
         batch = []; // Clear the batch
+        await executeBatch(currentBatch, batchNumber, isIntervalHit);
         batchNumber++;
       }
 
